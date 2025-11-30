@@ -106,7 +106,7 @@ export default function Navbar({ user }: NavbarProps) {
                   <button
                     onClick={() => {
                       setShowDropdown(false);
-                      navigate("/dashboard");
+                      navigate("/");
                     }}
                     className="w-full px-4 py-2 text-right hover:bg-gray-50 text-sm text-gray-700 flex items-center gap-2"
                     dir="rtl"

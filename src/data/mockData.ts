@@ -307,7 +307,7 @@ export interface DashboardSession {
 export const getMockDashboardSessions = (studentId: string): DashboardSession[] => {
   return mockSessionEnrollments
     .filter(se => se.student_id === studentId)
-    .map((se, index) => {
+    .map((se) => {
       const session = mockSessions.find(s => s.session_id === se.session_id);
       const hifz = mockHifzRecords.find(h => h.session_enroll_id === se.id);
       const revision = mockRevisionRecords.find(r => r.session_enroll_id === se.id);

@@ -25,7 +25,7 @@ const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
 
 export const api = {
 // Login with phone number (matches your schema)
-  login: async (phone_num: string, password: string) => {
+  login: async (phone_num: string, _password: string) => {
     await new Promise(resolve => setTimeout(resolve, 800));
     
     const user = mockUsers.find(u => u.phone_num === phone_num);
@@ -300,35 +300,60 @@ import {
   mockUsers,
   mockStudents,
   calculateStudentProgress,
-  getMockDashboardSessions
+  getMockDashboardSessions,
+  mockSeasons
 } from '../data/mockData';
 
 // ... keep all the real API functions ...
 
 // At the bottom, UPDATE the legacy functions by attaching them to the exported api object
 Object.assign(api, {
-  // ==================== LEGACY (for your existing components) ====================
   getUserProgress: async (userId: string) => {
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Find student by user_id
     const student = mockStudents.find(s => s.user_id === userId);
     if (!student) return { percentage: 0 };
-    
     const percentage = calculateStudentProgress(student.application_id);
     return { percentage };
   },
-
   getSessions: async (userId: string) => {
-    // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Find student by user_id
     const student = mockStudents.find(s => s.user_id === userId);
     if (!student) return [];
-    
     return getMockDashboardSessions(student.application_id);
   },
+  getCurrentSeason: async () => {
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const today = new Date();
+    const within = (dateStr: string, startStr: string, endStr: string) => {
+      const d = new Date(dateStr);
+      const s = new Date(startStr);
+      const e = new Date(endStr);
+      return d >= s && d <= e;
+    };
+    const current = mockSeasons.find(s => within(today.toISOString().slice(0,10), s.season_start, s.season_end));
+    return current || mockSeasons[mockSeasons.length - 1];
+  },
+  getRegistrationStatus: async () => {
+    const season = await api.getCurrentSeason();
+    const mode = season.season_type === 'REGULAR' ? 'ANNUAL' : 'SUMMER';
+    return { open: true, mode, season };
+  },
+  submitRegistration: async (data: { first_name: string; last_name: string; phone: string; dob: string; address: string; }) => {
+    await new Promise(resolve => setTimeout(resolve, 600));
+    const id = 'APP' + Date.now();
+    const season = await api.getCurrentSeason();
+    const application = { application_id: id, status: 'PENDING', season_type: season.season_type, ...data };
+    localStorage.setItem('registration_application', JSON.stringify(application));
+    return application;
+  },
+  getSubmittedApplication: async () => {
+    const raw = localStorage.getItem('registration_application');
+    return raw ? JSON.parse(raw) : null;
+  },
+  getKhotba: async () => {
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const raw = localStorage.getItem('khotba_meta');
+    return raw ? JSON.parse(raw) : null;
+  }
 })
 

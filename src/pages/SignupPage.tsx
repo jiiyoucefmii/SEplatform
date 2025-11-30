@@ -47,10 +47,11 @@ export default function SignUpPage() {
       localStorage.setItem("user", JSON.stringify(response.user));
 
       alert("تم إنشاء الحساب بنجاح!");
-      window.location.href = "/dashboard";
-    } catch (error: any) {
+      window.location.href = "/";
+    } catch (error: unknown) {
       console.error("Signup failed:", error);
-      alert(error.message || "فشل إنشاء الحساب. حاول مرة أخرى.");
+      const msg = error instanceof Error ? error.message : "فشل إنشاء الحساب. حاول مرة أخرى.";
+      alert(msg);
     }
   };
 
@@ -241,6 +242,10 @@ export default function SignUpPage() {
               تسجيل الدخول
             </a>
           </p>
+          <div className="mt-3 flex items-center justify-center gap-4" dir="rtl">
+            <a href="/" className="text-sm text-gray-600 hover:underline">الصفحة الرئيسية</a>
+            <a href="/register" className="text-sm text-primary hover:underline">التسجيل في حلقة</a>
+          </div>
         </div>
       </div>
     </div>
