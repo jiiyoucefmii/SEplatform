@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/Card";
-import { Avatar, AvatarFallback } from "@/components/Avatar";
-import { Button } from "@/components/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/card";
+import { Avatar, AvatarFallback } from "@/components/avatar";
+import { Button } from "@/components/button";
 import  {Input}  from "@/components/teachInput";
 import { Badge } from "@/components/badge";
 import { Switch } from "@/components/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/select";
+// removed unused Select imports
 import { Users, Calendar, Save, ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 
@@ -173,6 +173,7 @@ const TeacherDashboard = () => {
                   <p className="text-muted-foreground arabic-text">معلم القرآن الكريم</p>
                 </div>
               </div>
+              <a href="/" className="text-sm text-primary hover:underline arabic-text">الصفحة الرئيسية</a>
             </div>
           </CardHeader>
         </Card>

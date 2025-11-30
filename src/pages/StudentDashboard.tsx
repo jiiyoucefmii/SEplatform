@@ -3,7 +3,6 @@ import MainLayout from "../layouts/MainLayout";
 import ProgressCircle from "../components/ProgressCircle";
 import DailyVerseCard from "../components/DailyVerse";
 import SessionCard from "../components/SessionCard";
-import { api } from "../services/api";
 import type { Session, User } from "../types";
 
 export default function DashboardPage() {

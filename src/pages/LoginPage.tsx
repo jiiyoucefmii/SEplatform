@@ -19,12 +19,11 @@ export default function LoginPage() {
       localStorage.setItem("user", JSON.stringify(response.user));
 
       alert("تم تسجيل الدخول بنجاح!");
-      window.location.href = "/dashboard";
-    } catch (error: any) {
+      window.location.href = "/";
+    } catch (error: unknown) {
       console.error("Login failed:", error);
-      alert(
-        error.message || "فشل تسجيل الدخول. تحقق من رقم الهاتف وكلمة المرور."
-      );
+      const msg = error instanceof Error ? error.message : "فشل تسجيل الدخول. تحقق من رقم الهاتف وكلمة المرور.";
+      alert(msg);
     }
   };
 
@@ -106,6 +105,10 @@ export default function LoginPage() {
               إنشاء حساب جديد
             </a>
           </p>
+          <div className="mt-3 flex items-center justify-center gap-4" dir="rtl">
+            <a href="/" className="text-sm text-gray-600 hover:underline">الصفحة الرئيسية</a>
+            <a href="/register" className="text-sm text-primary hover:underline">التسجيل في حلقة</a>
+          </div>
         </div>
       </div>
     </div>
