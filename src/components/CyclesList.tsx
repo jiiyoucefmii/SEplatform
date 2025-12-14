@@ -38,21 +38,28 @@ export function CyclesList({
             >
               <div className="flex items-center justify-between mb-4">
                 <div
-                  className={`p-3 rounded-lg ${
-                    cycle.status === "active" ? "bg-green-100" : "bg-gray-100"
-                  }`}
+                  className="p-3 rounded-lg"
+                  style={
+                    cycle.status === "active"
+                      ? { backgroundColor: "#FFEEC1" }
+                      : { backgroundColor: "#D6E7E4" }
+                  }
                 >
                   <BookOpen
-                    className={`w-6 h-6 ${
+                    className="w-6 h-6"
+                    style={
                       cycle.status === "active"
-                        ? "text-[#024C3F]"
-                        : "text-gray-600"
-                    }`}
+                        ? { color: "#6B5417" }
+                        : { color: "#024C3F" }
+                    }
                   />
                 </div>
 
                 {cycle.status === "completed" && (
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <CheckCircle
+                    className="w-5 h-5 "
+                    style={{ color: "#126247" }}
+                  />
                 )}
               </div>
 
@@ -75,11 +82,11 @@ export function CyclesList({
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-600">تاريخ الانتهاء:</span>
                   <span
-                    className={`${
+                    style={
                       cycle.status === "active"
-                        ? "text-green-600"
-                        : "text-gray-800"
-                    }`}
+                        ? { color: "#6B5417" }
+                        : { color: "#126247" }
+                    }
                   >
                     {cycle.endDate}
                   </span>
@@ -88,11 +95,12 @@ export function CyclesList({
 
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <span
-                  className={`inline-block px-3 py-1 rounded-full text-sm ${
+                  className="inline-block px-3 py-1 rounded-full text-sm"
+                  style={
                     cycle.status === "active"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
+                      ? { backgroundColor: "#FFEEC1", color: "#6B5417" }
+                      : { backgroundColor: "#D6E7E4", color: "#126247" }
+                  }
                 >
                   {cycle.status === "active" ? "دورة نشطة" : "دورة مكتملة"}
                 </span>

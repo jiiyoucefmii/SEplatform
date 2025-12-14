@@ -38,9 +38,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
                 alt="masjid"
                 className="w-10 h-10"
                 style={{
-                  color: "#FEC737",
                   filter:
-                    "brightness(0) saturate(100%) invert(84%) sepia(56%) saturate(1200%) hue-rotate(3deg) brightness(104%) contrast(104%)",
+                    "brightness(0) saturate(100%) invert(77%) sepia(80%) saturate(1000%) hue-rotate(350deg) brightness(100%) contrast(100%)",
                 }}
               />
             </div>
