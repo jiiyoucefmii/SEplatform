@@ -4,23 +4,47 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 // Helper function for authenticated requests
 const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('auth_token');
-  
+
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const url = `${API_BASE_URL}${endpoint}`;
 
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.statusText}`);
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (err: any) {
+    // Network error / CORS / server not reachable
+    const msg = err?.message || String(err);
+    console.error(`Network error while fetching ${url}:`, err);
+    throw new Error(`Network error while fetching ${url}: ${msg}`);
   }
 
-  return response.json();
+  if (!response.ok) {
+    // Try to include body text or JSON for better diagnostics
+    let bodyText = '';
+    try {
+      bodyText = await response.text();
+    } catch (_) {
+      bodyText = response.statusText || `status ${response.status}`;
+    }
+    throw new Error(`API Error ${response.status} ${response.statusText}: ${bodyText}`);
+  }
+
+  // Some endpoints may return no content
+  if (response.status === 204) return null;
+
+  try {
+    return await response.json();
+  } catch (err: any) {
+    throw new Error(`Failed to parse JSON from ${url}: ${err?.message || err}`);
+  }
 };
 
 export const api: any = {
@@ -305,7 +329,7 @@ export const api: any = {
       body: JSON.stringify(data),
     });
   },
-
+ 
   updateKhotba: async (id: string, data: Record<string, unknown>) => {
     return fetchWithAuth(`/public/khotba/${id}/`, {
       method: 'PUT',

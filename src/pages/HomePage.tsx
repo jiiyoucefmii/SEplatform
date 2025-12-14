@@ -3,7 +3,6 @@ import type { User } from '../types';
 import { Navigation } from '../components/home/Navigation';
 import { HeroSection } from '../components/home/HeroSection';
 import { FeaturesSection } from '../components/home/FeaturesSection';
-import { PublicKhotbaList } from '../components/home/PublicKhotbaList';
 import { ImamHalaqatSection } from '../components/home/ImamHalaqatSection';
 import { CompetitionsSection } from '../components/home/CompetitionsSection';
 import { Footer } from '../components/home/Footer';
@@ -28,7 +27,6 @@ export default function HomePage() {
       <main className="relative z-10">
         <HeroSection user={user} />
         <FeaturesSection />
-        <PublicKhotbaList />
         <ImamHalaqatSection />
         <CompetitionsSection />
       </main>
