@@ -23,9 +23,9 @@ const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
   return response.json();
 };
 
-export const api = {
+export const api: any = {
 // Login with phone number (matches your schema)
-  login: async (phone_num: string, _password: string) => {
+  login: async (phone_num: string) => {
     await new Promise(resolve => setTimeout(resolve, 800));
     
     const user = mockUsers.find(u => u.phone_num === phone_num);
@@ -125,14 +125,14 @@ export const api = {
     return fetchWithAuth(`/students/${studentId}`);
   },
 
-  createStudent: async (studentData: any) => {
+  createStudent: async (studentData: Record<string, unknown>) => {
     return fetchWithAuth('/students', {
       method: 'POST',
       body: JSON.stringify(studentData),
     });
   },
 
-  updateStudent: async (studentId: string, studentData: any) => {
+  updateStudent: async (studentId: string, studentData: Record<string, unknown>) => {
     return fetchWithAuth(`/students/${studentId}`, {
       method: 'PUT',
       body: JSON.stringify(studentData),
@@ -288,6 +288,35 @@ export const api = {
 
   getDailyVerse: async () => {
     return fetchWithAuth('/daily-verse');
+  },
+
+  // ==================== PUBLIC: KHOTBA ====================
+  getKhotbas: async () => {
+    return fetchWithAuth('/public/khotba/');
+  },
+
+  getKhotbaById: async (id: string) => {
+    return fetchWithAuth(`/public/khotba/${id}/`);
+  },
+
+  createKhotba: async (data: Record<string, unknown>) => {
+    return fetchWithAuth('/public/khotba/', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateKhotba: async (id: string, data: Record<string, unknown>) => {
+    return fetchWithAuth(`/public/khotba/${id}/`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteKhotba: async (id: string) => {
+    return fetchWithAuth(`/public/khotba/${id}/`, {
+      method: 'DELETE',
+    });
   },
 
   getSessions: async (userId: string) => {

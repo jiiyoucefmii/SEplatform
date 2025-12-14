@@ -142,3 +142,11 @@ export interface UserRegistration {
   role: 'PARENT' | 'TEACHER' | 'STUDENT' ;
   secret_code?: string; // Only for TEACHER role
 }
+
+export interface Khotba {
+  id: string;
+  title: string;
+  summary?: string;
+  content?: string;
+  date?: string; // ISO date
+}

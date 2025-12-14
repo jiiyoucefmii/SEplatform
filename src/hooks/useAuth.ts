@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 interface User {
   user_id: string;
@@ -9,16 +9,14 @@ interface User {
 }
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const s = localStorage.getItem('user');
+      return s ? JSON.parse(s) : null;
+    } catch {
+      return null;
     }
-    setLoading(false);
-  }, []);
+  });
 
   const logout = () => {
     localStorage.removeItem('user');
@@ -27,5 +25,5 @@ export const useAuth = () => {
     window.location.href = '/login';
   };
 
-  return { user, loading, logout, isAuthenticated: !!user };
+  return { user, logout, isAuthenticated: !!user };
 };
