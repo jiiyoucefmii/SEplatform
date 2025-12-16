@@ -37,6 +37,7 @@ module.exports = {
       },
       fontFamily: {
         arabic: ["Amiri", "Scheherazade", "sans-serif"],
+        readex: ["Readex Pro", "sans-serif"],
       },
     },
   },

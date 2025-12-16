@@ -1,5 +1,7 @@
 import { BookOpen } from 'lucide-react';
 import { motion } from 'motion/react';
+import { Link } from 'react-router-dom';
+
 
 export function Navigation() {
   return (
@@ -25,9 +27,10 @@ export function Navigation() {
           <a href="#competitions" className="hover:text-[#FEC737] transition-colors">المسابقات</a>
         </div>
 
+
         <div className="flex items-center gap-2">
-          <button className="px-4 py-1.5 border-2 border-[#024C3F] text-[#024C3F] rounded-md hover:bg-[#024C3F] hover:text-white transition-all text-sm">تسجيل الدخول</button>
-          <button className="px-4 py-1.5 bg-[#FEC737] text-[#024C3F] rounded-md hover:bg-[#d4a72e] transition-all text-sm font-semibold">سجّل الآن</button>
+          <Link to="/signup" className="px-4 py-1.5 border-2 border-[#024C3F] text-[#024C3F] rounded-md hover:bg-[#024C3F] hover:text-white transition-all text-sm">تسجيل الدخول</Link>
+          <Link to="/login" className="px-4 py-1.5 bg-[#FEC737] text-[#024C3F] rounded-md hover:bg-[#d4a72e] transition-all text-sm font-semibold">سجّل الآن</Link>
         </div>
       </div>
     </motion.nav>

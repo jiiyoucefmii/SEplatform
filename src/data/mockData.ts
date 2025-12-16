@@ -1,15 +1,18 @@
-import type  { 
-  Student, 
-  Teacher, 
-  Course, 
-  Season, 
-  SessionDB, 
-  Enrollment, 
-  Hifz, 
-  Revision, 
+import type {
+  Student,
+  Teacher,
+  Course,
+  Season,
+  SessionDB,
+  Enrollment,
+  Hifz,
+  Revision,
   Test,
   SessionEnrollment,
-  User
+  User,
+  Child,
+  Cycle,
+  SessionRecord
 } from '../types';
 
 
@@ -281,12 +284,12 @@ export const mockTestRecords: Test[] = [
 
 // Helper function to calculate student progress
 export const calculateStudentProgress = (studentId: string): number => {
-  const hifzRecords = mockHifzRecords.filter(h => 
-    mockSessionEnrollments.find(se => 
+  const hifzRecords = mockHifzRecords.filter(h =>
+    mockSessionEnrollments.find(se =>
       se.id === h.session_enroll_id && se.student_id === studentId
     )
   );
-  
+
   // Simple calculation: each hifz record = ~2% progress
   const progress = Math.min(hifzRecords.length * 2, 100);
   return progress;
@@ -311,7 +314,7 @@ export const getMockDashboardSessions = (studentId: string): DashboardSession[] 
       const session = mockSessions.find(s => s.session_id === se.session_id);
       const hifz = mockHifzRecords.find(h => h.session_enroll_id === se.id);
       const revision = mockRevisionRecords.find(r => r.session_enroll_id === se.id);
-      
+
       return {
         id: se.id,
         date: session?.session_day || '2024-01-15',
@@ -326,9 +329,63 @@ export const getMockDashboardSessions = (studentId: string): DashboardSession[] 
 };
 
 
+
 export const validTeacherSecretCodes = [
   'TEACHER2024',
   'HUDA123',
   'QURAN456',
   'MASJID789'
 ];
+
+// UI Specific Mocks
+export const mockChildren: Child[] = mockStudents.map((s, i) => ({
+  id: s.application_id, // Using application_id as ID
+  name: s.student_first_name + ' ' + s.student_last_name,
+  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.student_first_name}`,
+  memorizationLevel: '5 أجزاء' // generic for now
+}));
+
+export const mockCurrentStudent: Child = mockChildren[0];
+
+export const mockCycles: Cycle[] = mockCourses.map(c => ({
+  id: c.course_id,
+  name: c.course_name,
+  year: '1445',
+  sessionsCount: 30,
+  startDate: '2023-09-01',
+  endDate: '2024-06-01',
+  status: 'active',
+  progress: 45,
+  totalSurahs: 10,
+  completedSurahs: 4,
+  section: 'قسم الحفظ'
+}));
+
+export const mockSessionsMap: Record<string, SessionRecord[]> = {
+  'CRS001': [
+    {
+      session_number: 1,
+      session_date: '2023-09-01',
+      session_type: 'HIFZ',
+      attendance: true,
+      hifz_details: 'سورة البقرة 1-10',
+      revision_details: 'سورة الفاتحة',
+    },
+    {
+      session_number: 2,
+      session_date: '2023-09-08',
+      session_type: 'HIFZ',
+      attendance: true,
+      hifz_details: 'سورة البقرة 11-20',
+      revision_details: 'سورة البقرة 1-10',
+    },
+    {
+      session_number: 3,
+      session_date: '2023-09-15',
+      session_type: 'TEST',
+      attendance: false,
+      justification: 'مرض'
+    }
+  ],
+  'CRS002': []
+};
