@@ -13,12 +13,16 @@ export default function DailyVerseCard() {
   };
 
   useEffect(() => {
-    fetchRandomVerse(); // fetch one verse on mount
+    // Defer initial fetch to avoid calling setState synchronously during render
+    const t = setTimeout(fetchRandomVerse, 0);
 
     // Refresh every minute (60,000 ms)
     const interval = setInterval(fetchRandomVerse, 60000);
 
-    return () => clearInterval(interval); // cleanup
+    return () => {
+      clearTimeout(t);
+      clearInterval(interval);
+    };
   }, []);
 
   return (

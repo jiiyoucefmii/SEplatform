@@ -6,7 +6,7 @@ export interface Session {
   reviewedVerses: number;
   surah: string;
   juz: string;
-evaluation: string;
+  evaluation: string;
   status: 'present' | 'absent';
 }
 
@@ -139,6 +139,43 @@ export interface UserRegistration {
   last_name: string;
   psswd: string;
   phone_num: string;
-  role: 'PARENT' | 'TEACHER' | 'STUDENT' ;
+  role: 'PARENT' | 'TEACHER' | 'STUDENT';
   secret_code?: string; // Only for TEACHER role
+}
+
+export interface Child {
+  id: string;
+  name: string;
+  avatar: string; // URL
+  memorizationLevel: string;
+}
+
+export interface Cycle {
+  id: string;
+  name: string;
+  year: string;
+  sessionsCount: number;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'completed';
+}
+
+export interface SessionRecord {
+  session_number: number;
+  session_id?: string;
+  session_date: string;
+  session_type: string;
+  attendance: boolean;
+  justification?: string;
+  hifz_details?: string;
+  revision_details?: string;
+  test_details?: string;
+}
+
+export interface Khotba {
+  id: string;
+  title: string;
+  summary?: string;
+  content?: string;
+  date?: string; // ISO date
 }

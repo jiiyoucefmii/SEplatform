@@ -29,17 +29,22 @@ export default function RegistrationPage() {
   const [submittedApp, setSubmittedApp] = useState<SubmittedApplication | null>(null);
 
   useEffect(() => {
-    (api as any).getRegistrationStatus().then((res: { open: boolean; mode: string }) => {
-      setOpen(res.open);
-      setMode(res.mode === "ANNUAL" ? "ANNUAL" : "SUMMER");
-    });
-    (api as any).getSubmittedApplication().then((app: SubmittedApplication | null) => {
-      if (app) setSubmittedApp(app);
-    });
+    async function fetchStatus() {
+      try {
+        const res = await api.getRegistrationStatus();
+        setOpen(res.open);
+        setMode(res.mode === "ANNUAL" ? "ANNUAL" : "SUMMER");
+        const app = await api.getSubmittedApplication();
+        if (app) setSubmittedApp(app);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchStatus();
   }, []);
 
   const submit = async () => {
-    const app = await (api as any).submitRegistration({
+    const app = await api.submitRegistration({
       first_name,
       last_name,
       phone,
@@ -110,7 +115,9 @@ export default function RegistrationPage() {
               <Input type="text" placeholder="الاسم" value={first_name} onChange={setFirstName} dir="rtl" />
               <Input type="text" placeholder="اللقب" value={last_name} onChange={setLastName} dir="rtl" />
               <Input type="tel" placeholder="رقم الهاتف" value={phone} onChange={setPhone} dir="rtl" />
+              <label htmlFor="dob" className="sr-only">تاريخ الميلاد</label>
               <input
+                id="dob"
                 type="date"
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
