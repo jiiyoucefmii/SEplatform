@@ -1,4 +1,4 @@
-import type { Cycle } from "../types";
+import type { Cycle } from "../App";
 import { Calendar, BookOpen, CheckCircle } from "lucide-react";
 
 interface CyclesListProps {
@@ -31,8 +31,9 @@ export function CyclesList({
             <button
               key={cycle.id}
               onClick={() => onSelectCycle(cycle.id)}
-              className={`bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all text-right ${isSelected ? "shadow-md" : ""
-                }`}
+              className={`bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all text-right ${
+                isSelected ? "shadow-md" : ""
+              }`}
               style={isSelected ? { border: "1.5px solid #FEC737" } : undefined}
             >
               <div className="flex items-center justify-between mb-4">

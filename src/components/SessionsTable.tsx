@@ -1,4 +1,4 @@
-import type { Cycle, SessionRecord } from "../types";
+import type { Cycle, SessionRecord } from "../App";
 import {
   CheckCircle,
   XCircle,

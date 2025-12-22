@@ -7,10 +7,12 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  userName?: string;
 }
 
 const menuItems = [
@@ -19,8 +21,19 @@ const menuItems = [
   { icon: Settings, label: "إعدادات" },
 ];
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({
+  collapsed,
+  onToggle,
+  userName = "أم محمد",
+}: SidebarProps) {
   const [activeItem, setActiveItem] = useState("حلقات قرآنية");
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("auth_token");
+    navigate("/login");
+  };
 
   return (
     <aside
@@ -34,7 +47,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0">
               <img
-                src="/masjid.svg"
+                src="/assets/masjid.svg"
                 alt="masjid"
                 className="w-10 h-10"
                 style={{
@@ -52,12 +65,12 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         {collapsed && (
           <div className="text-center">
             <img
-              src="/masjid.svg"
+              src="/assets/masjid.svg"
               alt="masjid"
               className="w-10 h-10 mx-auto"
               style={{
                 filter:
-                  "brightness(0) saturate(100%) invert(84%) sepia(56%) saturate(1200%) hue-rotate(3deg) brightness(104%) contrast(104%)",
+                  "brightness(0) saturate(100%) invert(77%) sepia(80%) saturate(1000%) hue-rotate(350deg) brightness(100%) contrast(100%)",
               }}
             />
           </div>
@@ -112,18 +125,21 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden">
                 <img
-                  src="/muslim boy.svg"
+                  src="/assets/muslim boy.svg"
                   alt="user"
                   className="w-10 h-10 rounded-full object-contain"
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white text-sm truncate">أم محمد</p>
+                <p className="text-white text-sm truncate">{userName}</p>
               </div>
             </div>
 
             {/* Logout Button */}
-            <button className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/90">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-white/90"
+            >
               <LogOut className="w-4 h-4 flex-shrink-0" />
               <span className="text-sm">تسجيل الخروج</span>
             </button>
@@ -132,12 +148,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <div className="flex flex-col items-center gap-2">
             <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden">
               <img
-                src="/muslim boy.svg"
+                src="/assets/muslim boy.svg"
                 alt="user"
                 className="w-10 h-10 rounded-full object-contain"
               />
             </div>
-            <button className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+            <button
+              onClick={handleLogout}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            >
               <LogOut className="w-4 h-4" />
             </button>
           </div>
