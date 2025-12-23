@@ -1,4 +1,4 @@
-import type { Child } from "../App";
+import type { Child } from "@/types/dashboard";
 import { BookOpen } from "lucide-react";
 
 interface ChildrenListProps {

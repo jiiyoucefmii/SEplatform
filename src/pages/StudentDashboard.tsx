@@ -3,35 +3,7 @@ import { Sidebar } from "../components/Sidebar";
 import { ChildrenList } from "../components/ChildrenList";
 import { CyclesList } from "../components/CyclesList";
 import { SessionsTable } from "../components/SessionsTable";
-
-export interface Child {
-  id: string;
-  name: string;
-  avatar: string;
-  memorizationLevel: string;
-}
-
-export interface Cycle {
-  id: string;
-  year: string;
-  name: string;
-  sessionsCount: number;
-  startDate: string;
-  endDate: string;
-  status: "completed" | "active";
-}
-
-export interface SessionRecord {
-  session_id?: number; // optional until backend provides it; use session_number as key otherwise
-  session_date: string;
-  session_number: number;
-  session_type: string; // e.g., HIFZ, REVISION, TEST
-  attendance: boolean;
-  justification: string;
-  hifz_details: string | null;
-  revision_details: string | null;
-  test_details: string | null;
-}
+import type { Child, Cycle, SessionRecord } from "@/types/dashboard";
 
 const mockChildren: Child[] = [
   {

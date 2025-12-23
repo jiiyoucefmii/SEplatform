@@ -11,12 +11,14 @@ import SignUpStep2 from "./pages/Auth/SignupStep2";
 import SignUpStep3 from "./pages/Auth/SignupStep3";
 import HomePage from "./pages/HomePage";
 import RegistrationPage from "./pages/RegistrationPage";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<AdminDashboard />} />
+        <Route path="/home" element={<HomePage />} />
         <Route path="/register" element={<RegistrationPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/login-phone" element={<LoginWithPhonePage />} />
@@ -28,7 +30,8 @@ function App() {
         <Route path="/signup-step-3" element={<SignUpStep3 />} />
         <Route path="/dashboard" element={<StudentDashboard />} />
         <Route path="/teacher" element={<TeacherDashboard />} />
-        <Route path="*" element={<HomePage />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="*" element={<AdminDashboard />} />
       </Routes>
     </BrowserRouter>
   );

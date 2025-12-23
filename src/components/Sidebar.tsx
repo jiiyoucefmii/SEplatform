@@ -49,11 +49,7 @@ export function Sidebar({
               <img
                 src="/assets/masjid.svg"
                 alt="masjid"
-                className="w-10 h-10"
-                style={{
-                  filter:
-                    "brightness(0) saturate(100%) invert(77%) sepia(80%) saturate(1000%) hue-rotate(350deg) brightness(100%) contrast(100%)",
-                }}
+                className="w-10 h-10 masjid-gold-filter"
               />
             </div>
             <div className="flex-1 text-right">
@@ -67,11 +63,7 @@ export function Sidebar({
             <img
               src="/assets/masjid.svg"
               alt="masjid"
-              className="w-10 h-10 mx-auto"
-              style={{
-                filter:
-                  "brightness(0) saturate(100%) invert(77%) sepia(80%) saturate(1000%) hue-rotate(350deg) brightness(100%) contrast(100%)",
-              }}
+              className="w-10 h-10 mx-auto masjid-gold-filter"
             />
           </div>
         )}
@@ -81,6 +73,8 @@ export function Sidebar({
       <div className="px-3 py-2">
         <button
           onClick={onToggle}
+          aria-label={collapsed ? "توسيع الشريط الجانبي" : "طي الشريط الجانبي"}
+          title={collapsed ? "توسيع الشريط الجانبي" : "طي الشريط الجانبي"}
           className="w-full p-2 hover:bg-white/10 rounded-lg transition-colors flex items-center justify-center"
         >
           {collapsed ? (
@@ -155,6 +149,8 @@ export function Sidebar({
             </div>
             <button
               onClick={handleLogout}
+              aria-label="تسجيل الخروج"
+              title="تسجيل الخروج"
               className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
             >
               <LogOut className="w-4 h-4" />

@@ -1,5 +1,5 @@
-import type { Cycle } from "../App";
-import { Calendar, BookOpen, CheckCircle } from "lucide-react";
+import type { Cycle } from "@/types/dashboard";
+import { BookOpen, CheckCircle } from "lucide-react";
 
 interface CyclesListProps {
   cycles: Cycle[];
