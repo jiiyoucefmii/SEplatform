@@ -17,7 +17,7 @@ export default function SignupStep3() {
   useEffect(() => {
     if (!username || !password || !phoneNumber) {
       // Redirect back if accessed directly without state
-      navigate("/HomePage");
+      navigate("/");
     }
   }, [username, password, phoneNumber, navigate]);
 

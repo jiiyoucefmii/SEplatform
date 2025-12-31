@@ -1,375 +1,717 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/card";
-import { Avatar, AvatarFallback } from "@/components/avatar";
-import { Button } from "@/components/button";
-import  {Input}  from "@/components/teachInput";
-import { Badge } from "@/components/badge";
-import { Switch } from "@/components/switch";
-// removed unused Select imports
-import { Users, Calendar, Save, ChevronLeft } from "lucide-react";
-import { toast } from "sonner";
+import { useState, useEffect } from "react";
+import { Sidebar } from "../components/Sidebar";
+import {
+  CheckCircle,
+  XCircle,
+  BookOpen,
+  RotateCcw,
+  FileText,
+  CalendarClock,
+  ChevronRight,
+  Plus,
+  Trash2,
+  Save,
+  Edit2,
+  MoreVertical,
+} from "lucide-react";
 
-interface Student {
-  id: number;
-  name: string;
-  attendance: boolean;
-  absenceJustified: boolean;
-  absenceReason: string;
-  memorization: { pages: number; verses: string; section: string };
-  review: { pages: number; verses: string; section: string };
-  testScore: number;
-  evaluation: string;
-}
-
-interface Session {
+interface Cycle {
   id: string;
-  date: string;
-  halaqaId: string;
-  students: Student[];
+  year: string;
+  name: string;
+  sessionsCount: number;
+  startDate: string;
+  endDate: string;
+  status: "completed" | "active";
 }
 
-const TeacherDashboard = () => {
-  const [selectedHalaqa, setSelectedHalaqa] = useState("halaqa1");
-  const [selectedSession, setSelectedSession] = useState<string | null>(null);
-  const [sessionStudents, setSessionStudents] = useState<Student[]>([]);
+interface SessionItem {
+  id: string;
+  sessionDate: string;
+  sessionNumber: number;
+  sessionType: "HIFZ" | "REVISION" | "TEST";
+}
 
-  const teacher = {
-    name: "الأستاذ عبد الرحمن",
+interface StudentSessionRecord {
+  id: string;
+  studentName: string;
+  studentAvatar: string;
+  sessionType: "HIFZ" | "REVISION" | "TEST";
+  attendance: boolean;
+  almiqdar: string; // from surah ayah to surah ayah
+  notes: string; // molahadat
+  justification: string; // absence reason
+}
+
+const mockCycles: Cycle[] = [
+  {
+    id: "1",
+    year: "1446",
+    name: "الدورة القرآنية 1446",
+    sessionsCount: 45,
+    startDate: "1446/01/01",
+    endDate: "مستمرة",
+    status: "active",
+  },
+  {
+    id: "2",
+    year: "1445",
+    name: "الدورة القرآنية 1445",
+    sessionsCount: 120,
+    startDate: "1445/01/15",
+    endDate: "1445/12/28",
+    status: "completed",
+  },
+  {
+    id: "3",
+    year: "1444",
+    name: "الدورة القرآنية 1444",
+    sessionsCount: 115,
+    startDate: "1444/02/01",
+    endDate: "1444/12/25",
+    status: "completed",
+  },
+];
+
+const mockSessions: Record<string, SessionItem[]> = {
+  "1": [
+    {
+      id: "s-1",
+      sessionDate: "2025-01-03",
+      sessionNumber: 15,
+      sessionType: "REVISION",
+    },
+    {
+      id: "s-2",
+      sessionDate: "2025-01-02",
+      sessionNumber: 14,
+      sessionType: "HIFZ",
+    },
+    {
+      id: "s-3",
+      sessionDate: "2025-01-01",
+      sessionNumber: 13,
+      sessionType: "TEST",
+    },
+  ],
+  "2": [
+    {
+      id: "s-4",
+      sessionDate: "2024-12-30",
+      sessionNumber: 120,
+      sessionType: "REVISION",
+    },
+  ],
+};
+
+const mockStudentRecords: Record<string, StudentSessionRecord[]> = {
+  "s-1": [
+    {
+      id: "ssr-1",
+      studentName: "أحمد محمد",
+      studentAvatar: "/assets/muslim boy.svg",
+      sessionType: "REVISION",
+      attendance: true,
+      almiqdar: "سورة الملك",
+      notes: "مراجعة ممتازة",
+      justification: "",
+    },
+    {
+      id: "ssr-2",
+      studentName: "فاطمة محمد",
+      studentAvatar: "/assets/muslim girl.svg",
+      sessionType: "REVISION",
+      attendance: true,
+      almiqdar: "سورة الطارق: 1-10",
+      notes: "تقدم جيد",
+      justification: "",
+    },
+    {
+      id: "ssr-3",
+      studentName: "عمر محمد",
+      studentAvatar: "/assets/muslim boy.svg",
+      sessionType: "REVISION",
+      attendance: false,
+      almiqdar: "",
+      notes: "",
+      justification: "ظرف عائلي طارئ",
+    },
+  ],
+  "s-2": [
+    {
+      id: "ssr-4",
+      studentName: "أحمد محمد",
+      studentAvatar: "/assets/muslim boy.svg",
+      sessionType: "HIFZ",
+      attendance: true,
+      almiqdar: "سورة الملك: 1-5",
+      notes: "حفظ واضح",
+      justification: "",
+    },
+    {
+      id: "ssr-5",
+      studentName: "فاطمة محمد",
+      studentAvatar: "/assets/muslim girl.svg",
+      sessionType: "HIFZ",
+      attendance: true,
+      almiqdar: "سورة النبأ: 1-3",
+      notes: "يحتاج تركيز أكثر",
+      justification: "",
+    },
+  ],
+};
+
+export default function TeacherDashboard() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [userName, setUserName] = useState("أستاذ");
+  const [view, setView] = useState<"cycles" | "sessions" | "details">("cycles");
+  const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
+    null
+  );
+  const [studentRecords, setStudentRecords] = useState<StudentSessionRecord[]>(
+    []
+  );
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showNewSessionDialog, setShowNewSessionDialog] = useState(false);
+  const [newSessionDate, setNewSessionDate] = useState("");
+
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    if (user) {
+      try {
+        const userData = JSON.parse(user);
+        setUserName(userData.first_name || "أستاذ");
+      } catch (e) {
+        setUserName("أستاذ");
+      }
+    }
+  }, []);
+
+  const typeLabels: Record<string, string> = {
+    HIFZ: "حفظ",
+    REVISION: "مراجعة",
+    TEST: "اختبار",
   };
 
-  const halaqat = [
-    { id: "halaqa1", name: "حلقة الفوج 1", students: 15 },
-    { id: "halaqa2", name: "حلقة الفوج 2", students: 12 },
-    { id: "halaqa3", name: "حلقة الإمام الخاصة", students: 8 },
-  ];
+  const toArabicType = (t: string) => typeLabels[t] ?? t;
 
-  const sessions: Session[] = [
-    {
-      id: "session1",
-      date: "2024-01-15",
-      halaqaId: "halaqa1",
-      students: [
-        {
-          id: 1,
-          name: "محمد أحمد",
-          attendance: true,
-          absenceJustified: false,
-          absenceReason: "",
-          memorization: { pages: 1, verses: "1-7", section: "الحزب 1 - الربع 1" },
-          review: { pages: 2, verses: "1-20", section: "الحزب 1 - الربع 2" },
-          testScore: 9,
-          evaluation: "ممتاز، حفظ متقن",
-        },
-        {
-          id: 2,
-          name: "فاطمة الزهراء",
-          attendance: true,
-          absenceJustified: false,
-          absenceReason: "",
-          memorization: { pages: 1, verses: "8-15", section: "الحزب 1 - الربع 1" },
-          review: { pages: 1, verses: "1-10", section: "الحزب 1 - الربع 1" },
-          testScore: 10,
-          evaluation: "ممتازة جداً",
-        },
-        {
-          id: 3,
-          name: "عمر خالد",
-          attendance: false,
-          absenceJustified: true,
-          absenceReason: "مرض",
-          memorization: { pages: 0, verses: "", section: "" },
-          review: { pages: 0, verses: "", section: "" },
-          testScore: 0,
-          evaluation: "",
-        },
-      ],
-    },
-    {
-      id: "session2",
-      date: "2024-01-14",
-      halaqaId: "halaqa1",
-      students: [
-        {
-          id: 1,
-          name: "محمد أحمد",
-          attendance: true,
-          absenceJustified: false,
-          absenceReason: "",
-          memorization: { pages: 1, verses: "8-14", section: "الحزب 1 - الربع 1" },
-          review: { pages: 1, verses: "1-7", section: "الحزب 1 - الربع 1" },
-          testScore: 8,
-          evaluation: "جيد جداً",
-        },
-        {
-          id: 2,
-          name: "فاطمة الزهراء",
-          attendance: true,
-          absenceJustified: false,
-          absenceReason: "",
-          memorization: { pages: 1, verses: "1-7", section: "الحزب 1 - الربع 1" },
-          review: { pages: 2, verses: "1-15", section: "الحزب 1 - الربع 1" },
-          testScore: 9,
-          evaluation: "ممتازة",
-        },
-        {
-          id: 3,
-          name: "عمر خالد",
-          attendance: true,
-          absenceJustified: false,
-          absenceReason: "",
-          memorization: { pages: 1, verses: "1-7", section: "الحزب 1 - الربع 1" },
-          review: { pages: 1, verses: "1-10", section: "الحزب 1 - الربع 1" },
-          testScore: 7,
-          evaluation: "جيد",
-        },
-      ],
-    },
-  ];
+  const handleSelectCycle = (cycleId: string) => {
+    setSelectedCycleId(cycleId);
+    setView("sessions");
+  };
 
-  const filteredSessions = sessions.filter((s) => s.halaqaId === selectedHalaqa);
-
-  const handleSessionClick = (sessionId: string) => {
-    const session = sessions.find((s) => s.id === sessionId);
-    if (session) {
-      setSelectedSession(sessionId);
-      setSessionStudents(session.students);
-    }
+  const handleSelectSession = (sessionId: string) => {
+    setSelectedSessionId(sessionId);
+    setStudentRecords(mockStudentRecords[sessionId] || []);
+    setView("details");
   };
 
   const handleBackToSessions = () => {
-    setSelectedSession(null);
-    setSessionStudents([]);
+    setView("sessions");
   };
 
-  const handleAttendanceToggle = (studentId: number, isPresent: boolean) => {
-    setSessionStudents((prev) =>
-      prev.map((s) => (s.id === studentId ? { ...s, attendance: isPresent } : s))
+  const handleBackToCycles = () => {
+    setView("cycles");
+    setSelectedCycleId(null);
+  };
+
+  const handleRecordChange = (
+    id: string,
+    field: keyof StudentSessionRecord,
+    value: any
+  ) => {
+    setStudentRecords((records) =>
+      records.map((record) =>
+        record.id === id ? { ...record, [field]: value } : record
+      )
     );
   };
 
-  const handleSave = () => {
-    toast.success("تم حفظ التغييرات بنجاح", {
-      description: "تم تحديث سجلات الطلاب",
-    });
+  const handleAddNewRecord = () => {
+    const newRecord: StudentSessionRecord = {
+      id: `ssr-${Date.now()}`,
+      studentName: "",
+      studentAvatar: "",
+      sessionType: "HIFZ",
+      attendance: true,
+      almiqdar: "",
+      notes: "",
+      justification: "",
+    };
+    setStudentRecords([...studentRecords, newRecord]);
+    setEditingId(newRecord.id);
   };
 
+  const handleDeleteRecord = (id: string) => {
+    setStudentRecords((records) =>
+      records.filter((record) => record.id !== id)
+    );
+  };
+
+  const handleCreateSession = () => {
+    if (!newSessionDate || !selectedCycleId) return;
+
+    const currentSessions = mockSessions[selectedCycleId] || [];
+    const newSessionNumber = currentSessions.length + 1;
+
+    const newSession: SessionItem = {
+      id: `s-${Date.now()}`,
+      sessionDate: newSessionDate,
+      sessionNumber: newSessionNumber,
+      sessionType: "HIFZ",
+    };
+
+    // Add to mock sessions (in real app, this would be an API call)
+    if (!mockSessions[selectedCycleId]) {
+      mockSessions[selectedCycleId] = [];
+    }
+    mockSessions[selectedCycleId].push(newSession);
+
+    setShowNewSessionDialog(false);
+    setNewSessionDate("");
+  };
+
+  const selectedCycle = mockCycles.find((c) => c.id === selectedCycleId);
+  const selectedSession = selectedCycleId
+    ? mockSessions[selectedCycleId]?.find((s) => s.id === selectedSessionId)
+    : null;
+
   return (
-    <div className="min-h-screen bg-secondary/20 py-8 px-4" dir="rtl">
-      <div className="container mx-auto max-w-7xl">
-        {/* Header */}
-        <Card className="mb-8 shadow-elevated border-primary/20">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Avatar className="h-16 w-16 border-4 border-accent">
-                  <AvatarFallback className="text-xl bg-accent text-white">
-                    {teacher.name.split(" ")[1]?.charAt(0) || "أ"}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <CardTitle className="text-3xl font-bold text-primary arabic-text">
-                    {teacher.name}
-                  </CardTitle>
-                  <p className="text-muted-foreground arabic-text">معلم القرآن الكريم</p>
+    <div className="flex h-screen bg-[#eef0ef]" dir="rtl">
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        userName={userName}
+      />
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 overflow-y-auto">
+          <div className="max-w-[1440px] mx-auto p-6">
+            {/* CYCLES VIEW */}
+            {view === "cycles" && (
+              <div>
+                <div className="mb-6">
+                  <h1 className="text-[#024C3F] mb-2 text-[26px] font-bold">
+                    الدورات القرآنية
+                  </h1>
+                  <p className="text-gray-600">
+                    اختر الدورة لعرض الحصص والطلاب
+                  </p>
                 </div>
-              </div>
-              <a href="/" className="text-sm text-primary hover:underline arabic-text">الصفحة الرئيسية</a>
-            </div>
-          </CardHeader>
-        </Card>
 
-        {/* Halaqat Selection */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-primary mb-6 arabic-text">الحلقات المسندة</h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            {halaqat.map((halaqa) => (
-              <Card
-                key={halaqa.id}
-                className={`cursor-pointer shadow-card hover:shadow-elevated transition-all ${
-                  selectedHalaqa === halaqa.id ? "border-2 border-primary bg-primary-light" : ""
-                }`}
-                onClick={() => setSelectedHalaqa(halaqa.id)}
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3">
-                    <Users className="h-6 w-6 text-primary" />
-                    <span className="arabic-text">{halaqa.name}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground arabic-text">عدد الطلاب</span>
-                    <Badge variant="secondary" className="text-lg">
-                      {halaqa.students}
-                    </Badge>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        {/* Sessions List or Session Detail */}
-        <Card className="shadow-elevated">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              {selectedSession ? (
-                <Button variant="ghost" onClick={handleBackToSessions} className="gap-2">
-                  <ChevronLeft className="h-5 w-5" />
-                  <span className="arabic-text">العودة للجلسات</span>
-                </Button>
-              ) : (
-                <CardTitle className="text-2xl text-primary arabic-text">
-                  الجلسات - {halaqat.find((h) => h.id === selectedHalaqa)?.name}
-                </CardTitle>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {!selectedSession ? (
-              // Sessions List
-              <div className="space-y-3">
-                {filteredSessions.map((session) => (
-                  <Card
-                    key={session.id}
-                    className="cursor-pointer shadow-card hover:shadow-elevated transition-all border-r-4 border-r-primary"
-                    onClick={() => handleSessionClick(session.id)}
-                  >
-                    <CardContent className="py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Calendar className="h-6 w-6 text-primary" />
-                          <div>
-                            <p className="font-bold text-lg arabic-text">
-                              جلسة {new Date(session.date).toLocaleDateString("ar-EG", {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                            </p>
-                            <p className="text-sm text-muted-foreground arabic-text">
-                              {session.students.length} طالب
-                            </p>
-                          </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {mockCycles.map((cycle) => (
+                    <div
+                      key={cycle.id}
+                      onClick={() => handleSelectCycle(cycle.id)}
+                      className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer p-6 border-r-4 border-[#024C3F]"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900">
+                            {cycle.name}
+                          </h3>
+                          <p className="text-sm text-gray-600 mt-1">
+                            السنة: {cycle.year}
+                          </p>
                         </div>
-                        <Badge variant="secondary" className="text-lg">
-                          {session.students.filter((s) => s.attendance).length} حاضر
-                        </Badge>
+                        <ChevronRight className="w-5 h-5 text-[#024C3F]" />
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              // Session Detail - Students List
-              <div className="space-y-4">
-                {sessionStudents.map((student) => (
-                  <Card key={student.id} className="shadow-card border-r-4 border-r-accent">
-                    <CardContent className="pt-6">
-                      <div className="space-y-6">
-                        {/* Student Header with Attendance Toggle */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12 border-2 border-primary">
-                              <AvatarFallback className="bg-primary text-white">
-                                {student.name.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-bold text-lg arabic-text">{student.name}</p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <span className="text-sm text-muted-foreground arabic-text">الحضور:</span>
-                                <Switch
-                                  checked={student.attendance}
-                                  onCheckedChange={(checked) => handleAttendanceToggle(student.id, checked)}
-                                />
-                                <Badge variant={student.attendance ? "default" : "destructive"}>
-                                  {student.attendance ? "حاضر" : "غائب"}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
+
+                      <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-100">
+                        <div>
+                          <p className="text-sm text-gray-600">عدد الحصص</p>
+                          <p className="text-xl font-bold text-[#024C3F]">
+                            {cycle.sessionsCount}
+                          </p>
                         </div>
-
-                        {/* Absence Reason */}
-                        {!student.attendance && (
-                          <div className="space-y-2">
-                            <label className="text-sm font-semibold text-muted-foreground arabic-text">
-                              سبب الغياب {student.absenceJustified && "(مبرر)"}
-                            </label>
-                            <Input
-                              defaultValue={student.absenceReason}
-                              placeholder="اكتب سبب الغياب..."
-                              className="arabic-text"
-                            />
-                          </div>
-                        )}
-
-                        {/* Session Details Grid */}
-                        {student.attendance && (
-                          <div className="space-y-6">
-                            <div className="grid md:grid-cols-2 gap-6">
-                              {/* Memorization */}
-                              <div className="space-y-3">
-                                <p className="text-sm font-semibold text-primary arabic-text">الحفظ الجديد</p>
-                                <div className="space-y-2">
-                                  <Input
-                                    placeholder="عدد الصفحات"
-                                    defaultValue={student.memorization.pages}
-                                    type="number"
-                                  />
-                                  <Input placeholder="الآيات" defaultValue={student.memorization.verses} />
-                                  <Input placeholder="الحزب/الربع" defaultValue={student.memorization.section} />
-                                </div>
-                              </div>
-
-                              {/* Review */}
-                              <div className="space-y-3">
-                                <p className="text-sm font-semibold text-accent arabic-text">المراجعة</p>
-                                <div className="space-y-2">
-                                  <Input placeholder="عدد الصفحات" defaultValue={student.review.pages} type="number" />
-                                  <Input placeholder="الآيات" defaultValue={student.review.verses} />
-                                  <Input placeholder="الحزب/الربع" defaultValue={student.review.section} />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Test Score and Evaluation */}
-                            <div className="grid md:grid-cols-2 gap-6">
-                              <div className="space-y-3">
-                                <p className="text-sm font-semibold text-muted-foreground arabic-text">نتيجة الاختبار</p>
-                                <div className="space-y-2">
-                                  <Input placeholder="الدرجة" defaultValue={student.testScore} type="number" max="10" />
-                                  <span className="text-sm text-muted-foreground">من 10</span>
-                                </div>
-                              </div>
-
-                              <div className="space-y-3">
-                                <p className="text-sm font-semibold text-muted-foreground arabic-text">التقييم</p>
-                                <Input placeholder="ملاحظات وتقييم الأستاذ..." defaultValue={student.evaluation} />
-                              </div>
-                            </div>
-                          </div>
-                        )}
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            cycle.status === "active"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {cycle.status === "active" ? "مستمرة" : "مكتملة"}
+                        </span>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-
-                <div className="mt-8 flex justify-center">
-                  <Button size="lg" onClick={handleSave} className="shadow-elevated">
-                    <Save className="h-5 w-5 ml-2" />
-                    <span className="arabic-text">حفظ جميع التغييرات</span>
-                  </Button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+
+            {/* SESSIONS VIEW */}
+            {view === "sessions" && selectedCycle && (
+              <div>
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleBackToCycles}
+                      className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      <ChevronRight className="w-5 h-5 rotate-180" />
+                    </button>
+                    <div>
+                      <h1 className="text-[#024C3F] mb-1 text-[26px] font-bold">
+                        {selectedCycle.name}
+                      </h1>
+                      <p className="text-gray-600">
+                        اختر الحصة لعرض تفاصيل الطلاب
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowNewSessionDialog(true)}
+                    className="flex items-center gap-2 bg-[#FEC737] text-gray-900 px-4 py-2 rounded-lg font-medium hover:bg-[#FDBF10] transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    إضافة حصة جديدة
+                  </button>
+                </div>
+
+                {/* New Session Dialog */}
+                {showNewSessionDialog && (
+                  <div
+                    className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+                    dir="rtl"
+                  >
+                    <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+                      <h2 className="text-xl font-bold text-[#024C3F] mb-4">
+                        إضافة حصة جديدة
+                      </h2>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            تاريخ الحصة
+                          </label>
+                          <input
+                            type="date"
+                            value={newSessionDate}
+                            onChange={(e) => setNewSessionDate(e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FEC737]"
+                          />
+                        </div>
+                        <div className="flex gap-3 justify-end">
+                          <button
+                            onClick={() => {
+                              setShowNewSessionDialog(false);
+                              setNewSessionDate("");
+                            }}
+                            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors"
+                          >
+                            إلغاء
+                          </button>
+                          <button
+                            onClick={handleCreateSession}
+                            disabled={!newSessionDate}
+                            className="px-4 py-2 bg-[#FEC737] text-gray-900 rounded-lg font-medium hover:bg-[#FDBF10] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            إضافة
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {(selectedCycleId ? mockSessions[selectedCycleId] : []).map(
+                    (session) => (
+                      <div
+                        key={session.id}
+                        onClick={() => handleSelectSession(session.id)}
+                        className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer p-6 border-r-4 border-[#FEC737]"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="text-lg font-bold text-gray-900">
+                              حصة رقم {session.sessionNumber}
+                            </h3>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {new Date(session.sessionDate).toLocaleDateString(
+                                "ar-SA"
+                              )}
+                            </p>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-[#024C3F]" />
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+                          {session.sessionType === "HIFZ" && (
+                            <BookOpen className="w-4 h-4 text-blue-500" />
+                          )}
+                          {session.sessionType === "REVISION" && (
+                            <RotateCcw className="w-4 h-4 text-green-500" />
+                          )}
+                          {session.sessionType === "TEST" && (
+                            <FileText className="w-4 h-4 text-orange-500" />
+                          )}
+                          <span className="text-sm font-medium text-gray-700">
+                            {toArabicType(session.sessionType)}
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* DETAILS VIEW */}
+            {view === "details" && selectedSession && (
+              <div>
+                <div className="mb-6 flex items-center gap-3">
+                  <button
+                    onClick={handleBackToSessions}
+                    className="p-2 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    <ChevronRight className="w-5 h-5 rotate-180" />
+                  </button>
+                  <div>
+                    <h1 className="text-[#024C3F] mb-1 text-[26px] font-bold">
+                      حصة رقم {selectedSession.sessionNumber}
+                    </h1>
+                    <p className="text-gray-600">
+                      {new Date(selectedSession.sessionDate).toLocaleDateString(
+                        "ar-SA"
+                      )}{" "}
+                      - {toArabicType(selectedSession.sessionType)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+                  <div className="bg-[#024C3F] p-6 text-white">
+                    <div>
+                      <h2 className="mb-1">سجل الطلاب</h2>
+                      <p className="text-white/90">
+                        إجمالي {studentRecords.length} طالب
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                          <th className="px-4 py-4 text-right text-sm text-gray-700">
+                            اسم الطالب
+                          </th>
+                          <th className="px-4 py-4 text-right text-sm text-gray-700">
+                            نوع الحصة
+                          </th>
+                          <th className="px-4 py-4 text-right text-sm text-gray-700">
+                            الحضور
+                          </th>
+                          <th className="px-4 py-4 text-right text-sm text-gray-700">
+                            المقدار
+                          </th>
+                          <th className="px-4 py-4 text-right text-sm text-gray-700">
+                            ملاحظات
+                          </th>
+                          <th className="px-4 py-4 text-right text-sm text-gray-700">
+                            سبب الغياب
+                          </th>
+                          <th className="px-4 py-4 text-right text-sm text-gray-700">
+                            الإجراءات
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {studentRecords.map((record) => (
+                          <tr
+                            key={record.id}
+                            className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                          >
+                            {editingId === record.id ? (
+                              <>
+                                <td className="px-4 py-4 text-sm text-gray-900 font-medium">
+                                  {record.studentName || "-"}
+                                </td>
+                                <td className="px-4 py-4">
+                                  <select
+                                    value={record.sessionType}
+                                    onChange={(e) =>
+                                      handleRecordChange(
+                                        record.id,
+                                        "sessionType",
+                                        e.target.value as
+                                          | "HIFZ"
+                                          | "REVISION"
+                                          | "TEST"
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FEC737]"
+                                  >
+                                    <option value="HIFZ">حفظ</option>
+                                    <option value="REVISION">مراجعة</option>
+                                    <option value="TEST">اختبار</option>
+                                  </select>
+                                </td>
+                                <td className="px-4 py-4">
+                                  <button
+                                    onClick={() =>
+                                      handleRecordChange(
+                                        record.id,
+                                        "attendance",
+                                        !record.attendance
+                                      )
+                                    }
+                                    className="flex items-center gap-2 w-full justify-center"
+                                  >
+                                    {record.attendance ? (
+                                      <div className="flex items-center gap-2 text-green-600">
+                                        <CheckCircle className="w-5 h-5" />
+                                        <span>حاضر</span>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2 text-red-600">
+                                        <XCircle className="w-5 h-5" />
+                                        <span>غياب</span>
+                                      </div>
+                                    )}
+                                  </button>
+                                </td>
+                                <td className="px-4 py-4">
+                                  <input
+                                    type="text"
+                                    value={record.almiqdar}
+                                    onChange={(e) =>
+                                      handleRecordChange(
+                                        record.id,
+                                        "almiqdar",
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="سورة من - إلى"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FEC737]"
+                                  />
+                                </td>
+                                <td className="px-4 py-4">
+                                  <input
+                                    type="text"
+                                    value={record.notes}
+                                    onChange={(e) =>
+                                      handleRecordChange(
+                                        record.id,
+                                        "notes",
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="ملاحظات"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FEC737]"
+                                  />
+                                </td>
+                                <td className="px-4 py-4">
+                                  <input
+                                    type="text"
+                                    value={record.justification}
+                                    onChange={(e) =>
+                                      handleRecordChange(
+                                        record.id,
+                                        "justification",
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="سبب الغياب"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FEC737]"
+                                  />
+                                </td>
+                                <td className="px-4 py-4">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => setEditingId(null)}
+                                      className="p-2 hover:bg-green-100 text-green-600 rounded-lg transition-colors"
+                                    >
+                                      <Save className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteRecord(record.id)
+                                      }
+                                      className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </>
+                            ) : (
+                              <>
+                                <td className="px-4 py-4 text-sm text-gray-900">
+                                  {record.studentName || "-"}
+                                </td>
+                                <td className="px-4 py-4 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    {record.sessionType === "HIFZ" && (
+                                      <BookOpen className="w-4 h-4 text-blue-500" />
+                                    )}
+                                    {record.sessionType === "REVISION" && (
+                                      <RotateCcw className="w-4 h-4 text-green-500" />
+                                    )}
+                                    {record.sessionType === "TEST" && (
+                                      <FileText className="w-4 h-4 text-orange-500" />
+                                    )}
+                                    <span className="text-gray-900">
+                                      {toArabicType(record.sessionType)}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4 text-sm">
+                                  {record.attendance ? (
+                                    <div className="flex items-center gap-2 text-green-600">
+                                      <CheckCircle className="w-5 h-5" />
+                                      <span>حاضر</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-2 text-red-600">
+                                      <XCircle className="w-5 h-5" />
+                                      <span>غياب</span>
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-gray-600">
+                                  {record.almiqdar || "-"}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-gray-600">
+                                  {record.notes || "-"}
+                                </td>
+                                <td className="px-4 py-4 text-sm text-gray-600">
+                                  {record.justification || "-"}
+                                </td>
+                                <td className="px-4 py-4">
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => setEditingId(record.id)}
+                                      className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition-colors"
+                                    >
+                                      <Edit2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        handleDeleteRecord(record.id)
+                                      }
+                                      className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );
-};
-
-export default TeacherDashboard;
+}
