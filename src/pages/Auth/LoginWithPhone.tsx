@@ -23,7 +23,11 @@ export default function LoginWithPhonePage() {
             localStorage.setItem("auth_token", response.token); // valid since api.login returns token
 
             alert("تم تسجيل الدخول بنجاح!");
-            navigate("/dashboard");
+            if (response.user.role === 'TEACHER') {
+                navigate("/teacher");
+            } else {
+                navigate("/dashboard");
+            }
         } catch (error: unknown) {
             console.error("Login failed:", error);
             const msg = error instanceof Error ? error.message : "فشل تسجيل الدخول";

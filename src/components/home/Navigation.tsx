@@ -29,8 +29,8 @@ export function Navigation() {
 
 
         <div className="flex items-center gap-2">
-          <Link to="/signup" className="px-4 py-1.5 border-2 border-[#024C3F] text-[#024C3F] rounded-md hover:bg-[#024C3F] hover:text-white transition-all text-sm">تسجيل الدخول</Link>
-          <Link to="/login" className="px-4 py-1.5 bg-[#FEC737] text-[#024C3F] rounded-md hover:bg-[#d4a72e] transition-all text-sm font-semibold">سجّل الآن</Link>
+          <Link to="/login" className="px-4 py-1.5 border-2 border-[#024C3F] text-[#024C3F] rounded-md hover:bg-[#024C3F] hover:text-white transition-all text-sm">تسجيل الدخول</Link>
+          <Link to="/signup" className="px-4 py-1.5 bg-[#FEC737] text-[#024C3F] rounded-md hover:bg-[#d4a72e] transition-all text-sm font-semibold">سجّل الآن</Link>
         </div>
       </div>
     </motion.nav>

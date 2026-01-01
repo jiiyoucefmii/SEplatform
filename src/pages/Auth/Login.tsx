@@ -29,10 +29,21 @@ export default function LoginPage() {
       // I will change it to a simulated login for now.
 
       console.log("Login attempt with:", username);
+
+      let role = "STUDENT";
+      if (username.toLowerCase().includes("teacher") || username.includes("استاذ") || username.includes("3")) {
+        role = "TEACHER";
+      }
+
       // Simulate success
-      localStorage.setItem("user", JSON.stringify({ name: username, role: "STUDENT" }));
+      localStorage.setItem("user", JSON.stringify({ name: username, role: role, first_name: role === "TEACHER" ? "أستاذ" : "طالب" }));
       alert("تم تسجيل الدخول بنجاح!");
-      navigate("/HomePage");
+
+      if (role === "TEACHER") {
+        navigate("/teacher");
+      } else {
+        navigate("/dashboard");
+      }
 
     } catch (error: unknown) {
       console.error("Login failed:", error);

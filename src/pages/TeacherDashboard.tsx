@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "../components/Sidebar";
+import HistoryPage from "./HistoryPage";
+import { StudentProgress } from "../components/student-profile/StudentProgress";
 import {
   CheckCircle,
   XCircle,
@@ -164,11 +166,12 @@ const mockStudentRecords: Record<string, StudentSessionRecord[]> = {
 export default function TeacherDashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userName, setUserName] = useState("أستاذ");
-  const [view, setView] = useState<"cycles" | "sessions" | "details">("cycles");
+  const [view, setView] = useState<"cycles" | "sessions" | "details" | "history" | "student-profile">("cycles");
   const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(
     null
   );
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [studentRecords, setStudentRecords] = useState<StudentSessionRecord[]>(
     []
   );
@@ -272,6 +275,24 @@ export default function TeacherDashboard() {
     setNewSessionDate("");
   };
 
+  const handleMenuItemClick = (label: string) => {
+    if (label === "السجل") {
+      setView("history");
+    } else if (label === "حلقات قرآنية") {
+      setView("cycles");
+    }
+  };
+
+  const handleStudentClick = (studentId: number) => {
+    setSelectedStudentId(studentId);
+    setView("student-profile");
+  };
+
+  const handleBackToDashboard = () => {
+    setView("cycles");
+    setSelectedStudentId(null);
+  };
+
   const selectedCycle = mockCycles.find((c) => c.id === selectedCycleId);
   const selectedSession = selectedCycleId
     ? mockSessions[selectedCycleId]?.find((s) => s.id === selectedSessionId)
@@ -283,6 +304,7 @@ export default function TeacherDashboard() {
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         userName={userName}
+        onMenuItemClick={handleMenuItemClick}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -327,11 +349,10 @@ export default function TeacherDashboard() {
                           </p>
                         </div>
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            cycle.status === "active"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${cycle.status === "active"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-700"
+                            }`}
                         >
                           {cycle.status === "active" ? "مستمرة" : "مكتملة"}
                         </span>
@@ -538,9 +559,9 @@ export default function TeacherDashboard() {
                                         record.id,
                                         "sessionType",
                                         e.target.value as
-                                          | "HIFZ"
-                                          | "REVISION"
-                                          | "TEST"
+                                        | "HIFZ"
+                                        | "REVISION"
+                                        | "TEST"
                                       )
                                     }
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-[#FEC737]"
@@ -641,7 +662,12 @@ export default function TeacherDashboard() {
                             ) : (
                               <>
                                 <td className="px-4 py-4 text-sm text-gray-900">
-                                  {record.studentName || "-"}
+                                  <button
+                                    onClick={() => handleStudentClick(1)}
+                                    className="text-[#024C3F] hover:underline font-medium"
+                                  >
+                                    {record.studentName || "-"}
+                                  </button>
                                 </td>
                                 <td className="px-4 py-4 text-sm">
                                   <div className="flex items-center gap-2">
@@ -708,6 +734,19 @@ export default function TeacherDashboard() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* HISTORY VIEW */}
+            {view === "history" && (
+              <HistoryPage onBack={handleBackToDashboard} />
+            )}
+
+            {/* STUDENT PROFILE VIEW */}
+            {view === "student-profile" && selectedStudentId && (
+              <StudentProgress
+                studentId={selectedStudentId}
+                onBack={handleBackToDashboard}
+              />
             )}
           </div>
         </main>
