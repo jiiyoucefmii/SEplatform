@@ -1,4 +1,4 @@
-import type { Cycle, SessionRecord } from "../App";
+import type { Cycle, UISessionRecord as SessionRecord } from "../pages/StudentDashboard";
 import {
   CheckCircle,
   XCircle,

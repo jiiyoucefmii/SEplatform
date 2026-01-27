@@ -1,9 +1,14 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Sidebar } from "../components/Sidebar";
 import { ChildrenList } from "../components/ChildrenList";
 import { CyclesList } from "../components/CyclesList";
 import { SessionsTable } from "../components/SessionsTable";
+import { studentApi } from "../services/studentApi";
+import type { Student, SessionRecord } from "../services/studentApi";
+import { Plus, Loader2 } from "lucide-react";
 
+// Converted types for UI components
 export interface Child {
   id: string;
   name: string;
@@ -21,11 +26,11 @@ export interface Cycle {
   status: "completed" | "active";
 }
 
-export interface SessionRecord {
-  session_id?: number; // optional until backend provides it; use session_number as key otherwise
+export interface UISessionRecord {
+  session_id?: number;
   session_date: string;
   session_number: number;
-  session_type: string; // e.g., HIFZ, REVISION, TEST
+  session_type: string;
   attendance: boolean;
   justification: string;
   hifz_details: string | null;
@@ -33,158 +38,207 @@ export interface SessionRecord {
   test_details: string | null;
 }
 
-const mockChildren: Child[] = [
-  {
-    id: "1",
-    name: "أحمد محمد",
-    avatar: "/assets/muslim boy.svg",
-    memorizationLevel: "حافظ 5 أجزاء",
-  },
-  {
-    id: "2",
-    name: "فاطمة محمد",
-    avatar: "/assets/muslim girl.svg",
-    memorizationLevel: "حافظة 3 أجزاء",
-  },
-  {
-    id: "3",
-    name: "عمر محمد",
-    avatar: "/assets/muslim boy.svg",
-    memorizationLevel: "حافظ جزء عم",
-  },
-];
+// Convert API Student to UI Child
+const toChild = (student: Student): Child => ({
+  id: student.application_id.toString(),
+  name: `${student.first_name} ${student.last_name}`,
+  avatar: student.gender === 'M' ? "/assets/muslim boy.svg" : "/assets/muslim girl.svg",
+  memorizationLevel: student.quran_level ? `حافظ ${student.quran_level} أجزاء` : "مبتدئ",
+});
 
-const mockCycles: Cycle[] = [
-  {
-    id: "1",
-    year: "1446",
-    name: "الدورة القرآنية 1446",
-    sessionsCount: 45,
-    startDate: "1446/01/01",
-    endDate: "مستمرة",
-    status: "active",
-  },
-  {
-    id: "2",
-    year: "1445",
-    name: "الدورة القرآنية 1445",
-    sessionsCount: 120,
-    startDate: "1445/01/15",
-    endDate: "1445/12/28",
-    status: "completed",
-  },
-  {
-    id: "3",
-    year: "1444",
-    name: "الدورة القرآنية 1444",
-    sessionsCount: 115,
-    startDate: "1444/02/01",
-    endDate: "1444/12/25",
-    status: "completed",
-  },
-  {
-    id: "4",
-    year: "1443",
-    name: "الدورة القرآنية 1443",
-    sessionsCount: 110,
-    startDate: "1443/02/10",
-    endDate: "1443/12/20",
-    status: "completed",
-  },
-];
+// Note: toCycle was removed - season to cycle conversion is now inlined in fetchCycles
 
-const mockSessions: Record<string, SessionRecord[]> = {
-  "1": [
-    {
-      session_id: 3,
-      session_date: "2025-01-03",
-      session_number: 3,
-      session_type: "REVISION",
-      attendance: true,
-      justification: "",
-      hifz_details: null,
-      revision_details: "مراجعة جزء عم كامل",
-      test_details: null,
-    },
-    {
-      session_id: 2,
-      session_date: "2025-01-02",
-      session_number: 2,
-      session_type: "HIFZ",
-      attendance: true,
-      justification: "",
-      hifz_details: "سورة الملك: الآيات 6-10",
-      revision_details: null,
-      test_details: null,
-    },
-    {
-      session_id: 1,
-      session_date: "2025-01-01",
-      session_number: 1,
-      session_type: "HIFZ",
-      attendance: true,
-      justification: "",
-      hifz_details: "سورة الملك: الآيات 1-5",
-      revision_details: null,
-      test_details: null,
-    },
-  ],
-  "2": [
-    {
-      session_id: 4,
-      session_date: "2024-12-30",
-      session_number: 1,
-      session_type: "REVISION",
-      attendance: false,
-      justification: "ظرف عائلي طارئ",
-      hifz_details: null,
-      revision_details: null,
-      test_details: null,
-    },
-  ],
-};
-
-// Mock current student (for student view)
-const mockCurrentStudent: Child = {
-  id: "student-1",
-  name: "أحمد محمد",
-  avatar: "/assets/muslim boy.svg",
-  memorizationLevel: "حافظ 5 أجزاء",
-};
+// Convert API SessionRecord to UI format
+const toUISession = (session: SessionRecord): UISessionRecord => ({
+  session_id: session.session_id,
+  session_date: session.session_date,
+  session_number: session.session_number,
+  session_type: session.session_type,
+  attendance: session.attendance,
+  justification: session.justification || "",
+  hifz_details: session.hifz_details
+    ? `${session.hifz_details.surah}: الآيات ${session.hifz_details.start_ayah}-${session.hifz_details.end_ayah}`
+    : null,
+  revision_details: session.revision_details
+    ? `${session.revision_details.surah}: الآيات ${session.revision_details.start_ayah}-${session.revision_details.end_ayah}`
+    : null,
+  test_details: session.test_details
+    ? `${session.test_details.test_type}: ${session.test_details.score}%`
+    : null,
+});
 
 export default function StudentDashboard() {
+  const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [userType, setUserType] = useState<"parent" | "student">("parent");
-  const [selectedChildId, setSelectedChildId] = useState<string>(
-    mockChildren[0].id
-  );
-  const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
-  const [userName, setUserName] = useState("أم محمد");
+  const [userName, setUserName] = useState("ولي الأمر");
+  const [_userId, setUserId] = useState<number | null>(null);
 
+  // Data states
+  const [children, setChildren] = useState<Child[]>([]);
+  const [cycles, setCycles] = useState<Cycle[]>([]);
+  const [sessions, setSessions] = useState<UISessionRecord[]>([]);
+
+  // Selection states
+  const [selectedChildId, setSelectedChildId] = useState<string>("");
+  const [selectedCycleId, setSelectedCycleId] = useState<string | null>(null);
+
+  // Loading states
+  const [loadingChildren, setLoadingChildren] = useState(true);
+  const [loadingCycles, setLoadingCycles] = useState(false);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Get user info and role from localStorage
   useEffect(() => {
-    // Get user name from localStorage
     const user = localStorage.getItem("user");
     if (user) {
       try {
         const userData = JSON.parse(user);
-        setUserName(userData.first_name || "أم محمد");
+        setUserName(userData.first_name || "ولي الأمر");
+        setUserId(userData.id);
+
+        // Check user role
+        if (userData.role === 'STUDENT') {
+          setUserType('student');
+        } else if (userData.role === 'ADMIN') {
+          navigate('/admin');
+          return;
+        } else if (userData.role === 'TEACHER') {
+          navigate('/teacher-dashboard');
+          return;
+        }
       } catch (e) {
-        setUserName("أم محمد");
+        console.error("Failed to parse user data:", e);
       }
+    } else {
+      navigate('/login');
+      return;
     }
-  }, []);
 
-  // Determine which child's data to show
-  const activeChild =
-    userType === "student"
-      ? mockCurrentStudent
-      : mockChildren.find((child) => child.id === selectedChildId);
+    // Fetch students
+    fetchStudents();
+  }, [navigate]);
 
-  const selectedChild = activeChild;
+  // Fetch cycles when child is selected
+  useEffect(() => {
+    if (selectedChildId) {
+      fetchCycles();
+    }
+  }, [selectedChildId]);
+
+  // Fetch sessions when cycle is selected
+  useEffect(() => {
+    if (selectedChildId && selectedCycleId) {
+      fetchSessions();
+    }
+  }, [selectedChildId, selectedCycleId]);
+
+  const fetchStudents = async () => {
+    setLoadingChildren(true);
+    setError(null);
+    try {
+      const students = await studentApi.getMyStudents();
+      const childList = students.map(toChild);
+      setChildren(childList);
+
+      // Auto-select first child if available
+      if (childList.length > 0) {
+        setSelectedChildId(childList[0].id);
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch students:", err);
+      setError("فشل في تحميل قائمة الطلاب");
+    } finally {
+      setLoadingChildren(false);
+    }
+  };
+
+  const fetchCycles = async () => {
+    if (!selectedChildId) return;
+
+    setLoadingCycles(true);
+    try {
+      // Get student profile which includes enrollment info and session records
+      const profile = await studentApi.getStudentProfile(parseInt(selectedChildId));
+
+      // If student has current enrollment, create a cycle from it
+      if (profile.current_season && profile.current_course) {
+        const sessionRecords = profile.session_records || [];
+
+        const cycle: Cycle = {
+          id: profile.current_season.season_id.toString(),
+          year: profile.current_season.season_start?.split('-')[0] || "",
+          name: profile.current_course.course_name || `الدورة ${profile.current_season.season_type === 'SUMMER' ? 'الصيفية' : 'السنوية'}`,
+          sessionsCount: sessionRecords.length,
+          startDate: profile.current_season.season_start || "",
+          endDate: profile.current_season.season_end || "مستمرة",
+          status: profile.current_season.is_active ? "active" : "completed",
+        };
+        setCycles([cycle]);
+
+        // Auto-select the cycle and set sessions directly
+        setSelectedCycleId(cycle.id);
+
+        // Convert and set sessions
+        const uiSessions: UISessionRecord[] = sessionRecords.map((s: any) => ({
+          session_id: s.session_id,
+          session_date: s.session_date || "",
+          session_number: s.session_number || 0,
+          session_type: s.session_type || "",
+          attendance: s.attendance ?? false,
+          justification: s.justification || "",
+          hifz_details: s.hifz_details
+            ? `${s.hifz_details.surah_from}: الآيات ${s.hifz_details.ayah_from}-${s.hifz_details.ayah_to}`
+            : null,
+          revision_details: s.revision_details
+            ? `${s.revision_details.surah_from}: الآيات ${s.revision_details.ayah_from}-${s.revision_details.ayah_to}`
+            : null,
+          test_details: s.test_details
+            ? `اختبار: ${s.test_details.score || 0}%`
+            : null,
+        }));
+        setSessions(uiSessions);
+      } else {
+        setCycles([]);
+        setSessions([]);
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch cycles:", err);
+      setCycles([]);
+    } finally {
+      setLoadingCycles(false);
+    }
+  };
+
+  const fetchSessions = async () => {
+    if (!selectedChildId || !selectedCycleId) return;
+
+    setLoadingSessions(true);
+    try {
+      const sessionData = await studentApi.getStudentSessions(
+        parseInt(selectedChildId),
+        parseInt(selectedCycleId)
+      );
+      setSessions(sessionData.map(toUISession));
+    } catch (err: any) {
+      console.error("Failed to fetch sessions:", err);
+      setSessions([]);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const handleSelectChild = (id: string) => {
+    setSelectedChildId(id);
+    setSelectedCycleId(null);
+    setSessions([]);
+  };
+
+  const selectedChild = children.find((child) => child.id === selectedChildId);
   const selectedCycle = selectedCycleId
-    ? mockCycles.find((cycle) => cycle.id === selectedCycleId)
+    ? cycles.find((cycle) => cycle.id === selectedCycleId)
     : null;
-  const sessions = selectedCycleId ? mockSessions[selectedCycleId] || [] : [];
 
   return (
     <div className="flex h-screen bg-[#eef0ef]" dir="rtl">
@@ -197,6 +251,7 @@ export default function StudentDashboard() {
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-[1440px] mx-auto p-6">
+            {/* Header */}
             <div className="mb-6">
               <h1 className="text-[#024C3F] mb-2 text-[26px] font-bold">
                 الحلقات القرآنية
@@ -204,56 +259,98 @@ export default function StudentDashboard() {
               <p className="text-gray-600">
                 عرض تفصيلي لجميع الدورات القرآنية والحصص الدراسية
               </p>
-              {/* User type toggle for testing */}
+
+              {/* User type toggle for testing - CAN BE REMOVED IN PRODUCTION */}
               <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => setUserType("parent")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    userType === "parent"
-                      ? "bg-[#024C3F] text-white"
-                      : "bg-gray-200 text-gray-700"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${userType === "parent"
+                    ? "bg-[#024C3F] text-white"
+                    : "bg-gray-200 text-gray-700"
+                    }`}
                 >
                   ولي أمر
                 </button>
                 <button
                   onClick={() => setUserType("student")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    userType === "student"
-                      ? "bg-[#024C3F] text-white"
-                      : "bg-gray-200 text-gray-700"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${userType === "student"
+                    ? "bg-[#024C3F] text-white"
+                    : "bg-gray-200 text-gray-700"
+                    }`}
                 >
                   طالب
                 </button>
               </div>
             </div>
 
-            {userType === "parent" && (
-              <ChildrenList
-                children={mockChildren}
-                selectedChildId={selectedChildId}
-                onSelectChild={(id) => {
-                  setSelectedChildId(id);
-                  setSelectedCycleId(null);
-                }}
-              />
-            )}
-
-            {selectedChild && (
-              <div className="mt-6">
-                <CyclesList
-                  cycles={mockCycles}
-                  selectedCycleId={selectedCycleId}
-                  onSelectCycle={setSelectedCycleId}
-                  childName={selectedChild.name}
-                />
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg mb-6">
+                {error}
               </div>
             )}
 
+            {/* Loading State */}
+            {loadingChildren && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-[#024C3F]" />
+                <span className="mr-3 text-gray-600">جاري تحميل البيانات...</span>
+              </div>
+            )}
+
+            {/* No Students State */}
+            {!loadingChildren && children.length === 0 && (
+              <div className="bg-white rounded-xl p-8 text-center">
+                <p className="text-gray-500 mb-4">لا يوجد طلاب مسجلين حالياً</p>
+                <button
+                  onClick={() => navigate('/register')}
+                  className="inline-flex items-center gap-2 bg-[#024C3F] text-white px-6 py-3 rounded-lg hover:bg-[#036B57] transition-colors"
+                >
+                  <Plus className="w-5 h-5" />
+                  تسجيل طالب جديد
+                </button>
+              </div>
+            )}
+
+            {/* Children List (for parents) */}
+            {!loadingChildren && children.length > 0 && userType === "parent" && (
+              <ChildrenList
+                children={children}
+                selectedChildId={selectedChildId}
+                onSelectChild={handleSelectChild}
+              />
+            )}
+
+            {/* Cycles List */}
+            {selectedChild && (
+              <div className="mt-6">
+                {loadingCycles ? (
+                  <div className="flex items-center py-6">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#024C3F]" />
+                    <span className="mr-2 text-gray-500">جاري تحميل الدورات...</span>
+                  </div>
+                ) : (
+                  <CyclesList
+                    cycles={cycles}
+                    selectedCycleId={selectedCycleId}
+                    onSelectCycle={setSelectedCycleId}
+                    childName={selectedChild.name}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Sessions Table */}
             {selectedCycle && (
               <div className="mt-6">
-                <SessionsTable cycle={selectedCycle} sessions={sessions} />
+                {loadingSessions ? (
+                  <div className="flex items-center py-6">
+                    <Loader2 className="w-6 h-6 animate-spin text-[#024C3F]" />
+                    <span className="mr-2 text-gray-500">جاري تحميل الحصص...</span>
+                  </div>
+                ) : (
+                  <SessionsTable cycle={selectedCycle} sessions={sessions} />
+                )}
               </div>
             )}
           </div>

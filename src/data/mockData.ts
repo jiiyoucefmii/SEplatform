@@ -338,7 +338,7 @@ export const validTeacherSecretCodes = [
 ];
 
 // UI Specific Mocks
-export const mockChildren: Child[] = mockStudents.map((s, i) => ({
+export const mockChildren: Child[] = mockStudents.map((s) => ({
   id: s.application_id, // Using application_id as ID
   name: s.student_first_name + ' ' + s.student_last_name,
   avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${s.student_first_name}`,

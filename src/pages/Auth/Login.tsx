@@ -1,42 +1,50 @@
 import { useState } from "react";
-
-import { Eye, EyeOff, HeartHandshake } from "lucide-react";
+import { HeartHandshake, Phone, Lock, Loader2 } from "lucide-react";
 import bookCover from "../../assets/Book Cover.jpg";
 import quranLogo from "../../assets/quranlogoyellow.svg";
 import { useNavigate } from "react-router-dom";
-
-
+import { api } from "../../services/api";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async () => {
-    if (!username || !password) {
-      alert("يرجى ملء جميع الحقول");
+  const handleLogin = async () => {
+    if (!phoneNumber || !password) {
+      setError("يرجى ملء جميع الحقول");
       return;
     }
 
+    setLoading(true);
+    setError(null);
+
     try {
-      // In a real app we would call api.login(username, password)
-      // Since the current mock api.login only takes phone_num, we'll assume username is phone for now 
-      // OR we just simulate a successful login for this demo since the user just asked for UI changes.
-      // But to be safe let's try to simulate a login.
+      const result = await api.login(phoneNumber, password);
+      console.log("Login successful:", result);
 
-      // However, looking at the previous file content, this file has "api.signup" inside "LoginPage" which seems wrong (copy-paste error?).
-      // I will change it to a simulated login for now.
+      // Redirect based on user role
+      const userRole = result.user?.role;
+      if (userRole === 'ADMIN') {
+        navigate('/admin');
+      } else if (userRole === 'TEACHER') {
+        navigate('/teacher-dashboard');
+      } else {
+        navigate('/student-dashboard');
+      }
+    } catch (err) {
+      console.error("Login failed:", err);
+      setError(err instanceof Error ? err.message : "فشل تسجيل الدخول");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      console.log("Login attempt with:", username);
-      // Simulate success
-      localStorage.setItem("user", JSON.stringify({ name: username, role: "STUDENT" }));
-      alert("تم تسجيل الدخول بنجاح!");
-      navigate("/HomePage");
-
-    } catch (error: unknown) {
-      console.error("Login failed:", error);
-      alert("فشل تسجيل الدخول");
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !loading) {
+      handleLogin();
     }
   };
 
@@ -48,49 +56,45 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center mb-8 relative">
             <div className="flex items-center justify-center gap-4 mb-2">
-
-              <h1 className="text-right text-6xl font-bold text-[#062A1E] font-readex">
-                اهلا بعودتك </h1>
-              <div >
-                <img src={quranLogo} alt="Logo" className="w-87 h-82" />
+              <h1 className="text-right text-5xl lg:text-6xl font-bold text-[#062A1E] font-readex">
+                تسجيل الدخول
+              </h1>
+              <div>
+                <img src={quranLogo} alt="Logo" className="w-24 h-24 lg:w-28 lg:h-28" />
               </div>
             </div>
             <p className="text-gray-600 mt-4 text-xl font-medium">
-              أدخل معلوماتك الأساسية للانضمام إلى منصتنا
+              أهلاً بك في المدرسة القرآنية
             </p>
           </div>
 
-          {/* Toggle */}
-          <div className="flex bg-gray-100 rounded-full p-1 mb-8 max-w-xs mx-auto">
-            <button
-              onClick={() => navigate("/login")}
-              className="flex-1 py-2 text-sm font-bold text-white bg-[#FEC737] rounded-full shadow-sm transition-all"
-
-            >
-              تسجيل الدخول
-            </button>
-            <button
-              onClick={() => navigate("/Signup")}
-              className="flex-1 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-all"
-            >
-              إنشاء حساب
-            </button>
-          </div>
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-center">
+              {error}
+            </div>
+          )}
 
           {/* Form Fields */}
           <div className="space-y-5" dir="rtl">
-            {/* Username */}
+            {/* Phone Number */}
             <div className="space-y-2">
               <label className="text-sm font-bold text-gray-700 text-right block">
-                اسم المستخدم :
+                رقم الهاتف :
               </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="أدخل اسم المستخدم"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#FEC737] focus:ring-1 focus:ring-[#FEC737] outline-none transition-all placeholder:text-gray-400 text-right bg-white"
-              />
+              <div className="relative">
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="05xxxxxxxx"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#FEC737] focus:ring-1 focus:ring-[#FEC737] outline-none transition-all placeholder:text-gray-400 text-right bg-white pl-10"
+                />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Phone className="w-5 h-5" />
+                </div>
+              </div>
             </div>
 
             {/* Password */}
@@ -100,58 +104,61 @@ export default function LoginPage() {
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="أدخل كلمة مرور قوية"
+                  onKeyPress={handleKeyPress}
+                  placeholder="••••••••"
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-[#FEC737] focus:ring-1 focus:ring-[#FEC737] outline-none transition-all placeholder:text-gray-400 text-right bg-white pl-10"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  {showPassword ? (
-                    <Eye className="w-5 h-5" />
-                  ) : (
-                    <EyeOff className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-              <div className="text-right mt-1">
-                <button
-                  onClick={() => navigate("/forgot-password")}
-                  className="text-sm text-gray-500 hover:text-[#FEC737] transition-colors"
-                >
-                  نسيت كلمة المرور؟
-                </button>
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                  <Lock className="w-5 h-5" />
+                </div>
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Forgot Password Link */}
+            <div className="text-left">
+              <button
+                onClick={() => navigate("/forgot-password")}
+                className="text-sm text-[#024C3F] hover:underline"
+              >
+                نسيت كلمة المرور؟
+              </button>
+            </div>
+
+            {/* Login Button */}
             <button
-              onClick={handleSubmit}
-              className="w-full bg-[#FEC737] hover:bg-[#FDBF10] text-white font-bold py-3.5 rounded-lg shadow-md hover:shadow-lg transition-all text-lg mt-4"
+              onClick={handleLogin}
+              disabled={loading}
+              className="w-full bg-[#FEC737] hover:bg-[#FDBF10] text-white font-bold py-3.5 rounded-lg shadow-md hover:shadow-lg transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              تسجيل الدخول
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>جاري تسجيل الدخول...</span>
+                </>
+              ) : (
+                <span>تسجيل الدخول</span>
+              )}
             </button>
 
-            {/* Separator */}
-            <div className="flex items-center gap-4 my-6">
-              <div className="h-px bg-gray-300 flex-1"></div>
+            {/* Signup Link */}
+            <div className="text-center pt-4">
+              <span className="text-gray-600">ليس لديك حساب؟ </span>
               <button
-                onClick={() => navigate("/login-phone")}
-                className="text-gray-500 text-sm font-medium hover:text-[#FEC737] transition-colors"
+                onClick={() => navigate("/Signup")}
+                className="text-[#024C3F] font-bold hover:underline"
               >
-                أو سجل الدخول باستخدام رقم الهاتف
+                إنشاء حساب جديد
               </button>
-              <div className="h-px bg-gray-300 flex-1"></div>
             </div>
           </div>
 
           {/* Footer */}
           <div className="mt-12 text-center space-y-3">
             <p className="text-[#024C3F] font-medium text-lg">
-              نسأل الله أن يوفقك ويبارك خطواتك
+              نسأل الله أن يبارك في علمك
             </p>
             <div className="flex justify-center">
               <HeartHandshake className="w-12 h-12 text-[#024C3F]" strokeWidth={1.5} />
