@@ -1,4 +1,4 @@
-import type { Child } from "../App";
+import type { Child } from "../pages/StudentDashboard";
 import { BookOpen } from "lucide-react";
 
 interface ChildrenListProps {
@@ -24,9 +24,8 @@ export function ChildrenList({
             <button
               key={child.id}
               onClick={() => onSelectChild(child.id)}
-              className={`bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all text-right ${
-                isSelected ? "shadow-md" : ""
-              }`}
+              className={`bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all text-right ${isSelected ? "shadow-md" : ""
+                }`}
               style={isSelected ? { border: "1.5px solid #FEC737" } : undefined}
             >
               <div className="flex items-center gap-4">

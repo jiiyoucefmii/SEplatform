@@ -1,9 +1,29 @@
-import { BookOpen } from 'lucide-react';
+import { BookOpen, LayoutDashboard, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Link } from 'react-router-dom';
-
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 
 export function Navigation() {
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+
+  // Get appropriate dashboard link based on user role
+  const getDashboardLink = () => {
+    if (!user?.role) return '/student-dashboard';
+    const dashboardMap: Record<string, string> = {
+      ADMIN: '/admin',
+      TEACHER: '/teacher-dashboard',
+      PARENT: '/student-dashboard',
+      STUDENT: '/student-dashboard',
+    };
+    return dashboardMap[user.role] || '/student-dashboard';
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <motion.nav
       initial={{ y: -100, opacity: 0 }}
@@ -27,10 +47,33 @@ export function Navigation() {
           <a href="#competitions" className="hover:text-[#FEC737] transition-colors">المسابقات</a>
         </div>
 
-
         <div className="flex items-center gap-2">
-          <Link to="/login" className="px-4 py-1.5 border-2 border-[#024C3F] text-[#024C3F] rounded-md hover:bg-[#024C3F] hover:text-white transition-all text-sm">تسجيل الدخول</Link>
-          <Link to="/signup" className="px-4 py-1.5 bg-[#FEC737] text-[#024C3F] rounded-md hover:bg-[#d4a72e] transition-all text-sm font-semibold">سجّل الآن</Link>
+          {isAuthenticated ? (
+            <>
+              {/* Dashboard Button */}
+              <Link
+                to={getDashboardLink()}
+                className="flex items-center gap-2 px-4 py-1.5 bg-[#024C3F] text-white rounded-md hover:bg-[#013d32] transition-all text-sm font-semibold"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span>لوحة التحكم</span>
+              </Link>
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-1.5 border-2 border-red-500 text-red-500 rounded-md hover:bg-red-500 hover:text-white transition-all text-sm"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>خروج</span>
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Show login/signup only when NOT authenticated */}
+              <Link to="/signup" className="px-4 py-1.5 border-2 border-[#024C3F] text-[#024C3F] rounded-md hover:bg-[#024C3F] hover:text-white transition-all text-sm">تسجيل الدخول</Link>
+              <Link to="/login" className="px-4 py-1.5 bg-[#FEC737] text-[#024C3F] rounded-md hover:bg-[#d4a72e] transition-all text-sm font-semibold">سجّل الآن</Link>
+            </>
+          )}
         </div>
       </div>
     </motion.nav>

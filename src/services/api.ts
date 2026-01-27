@@ -1,4 +1,4 @@
-import type { User, UserRegistration } from '../types';
+import type { UserRegistration } from '../types';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // Helper function for authenticated requests
@@ -48,116 +48,270 @@ const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
 };
 
 export const api: any = {
-// Login with phone number (matches your schema)
-  login: async (phone_num: string) => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const user = mockUsers.find(u => u.phone_num === phone_num);
-    
-    if (!user) {
-      throw new Error('رقم الهاتف أو كلمة المرور غير صحيحة');
+  // ==================== AUTH ====================
+  // Login with phone number and password (Parent/Student login)
+  login: async (phone_number: string, password: string) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/login/student/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.non_field_errors?.[0] || 'رقم الهاتف أو كلمة المرور غير صحيحة');
     }
-    
-    // In real app, backend validates hashed password
-    // For mock, accept any password
-    
-    const token = 'mock-jwt-token-' + Date.now();
-    localStorage.setItem('auth_token', token);
-    
+
+    const data = await response.json();
+
+    // Store tokens - backend returns { user: {...}, tokens: { access, refresh } }
+    const accessToken = data.tokens?.access || data.access;
+    const refreshToken = data.tokens?.refresh || data.refresh;
+
+    localStorage.setItem('auth_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
+    localStorage.setItem('user', JSON.stringify(data.user));
+
     return {
-      user: {
-        user_id: user.user_id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        phone_num: user.phone_num,
-        role: user.role
-      },
-      token
+      user: data.user,
+      token: accessToken,
+      refresh: refreshToken
     };
   },
 
+  // Login for teachers (PIN + Password)
+  loginTeacher: async (pin_code: string, password: string) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/login/teacher/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pin_code, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.non_field_errors?.[0] || 'الرمز السري أو كلمة المرور غير صحيحة');
+    }
+
+    const data = await response.json();
+
+    localStorage.setItem('auth_token', data.access);
+    localStorage.setItem('refresh_token', data.refresh);
+    localStorage.setItem('user', JSON.stringify(data.user));
+
+    return {
+      user: data.user,
+      token: data.access,
+      refresh: data.refresh
+    };
+  },
+
+  // Register new parent account
   signup: async (userData: UserRegistration) => {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Check if phone number already exists
-    const existingUser = mockUsers.find(u => u.phone_num === userData.phone_num);
-    if (existingUser) {
-      throw new Error('رقم الهاتف مستخدم بالفعل');
-    }
-    
-    // Validate teacher secret code
-    if (userData.role === 'TEACHER') {
-      if (!userData.secret_code) {
-        throw new Error('الرمز السري مطلوب للمعلمين');
+    const response = await fetch(`${API_BASE_URL}/accounts/register/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        phone_number: userData.phone_num,
+        password: userData.psswd,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      if (errorData.phone_number) {
+        throw new Error('رقم الهاتف مستخدم بالفعل');
       }
-      
-      // Mock validation - in real app, backend validates against database
-      const validSecretCodes = ['TEACHER2024', 'HUDA123', 'QURAN456'];
-      if (!validSecretCodes.includes(userData.secret_code)) {
-        throw new Error('الرمز السري غير صحيح. يرجى التواصل مع الإدارة');
-      }
+      throw new Error(errorData.detail || 'فشل إنشاء الحساب');
     }
-    
-    const newUser: User = {
-      user_id: 'USER' + Date.now(),
-      first_name: userData.first_name,
-      last_name: userData.last_name,
-      psswd: 'hashed_' + userData.psswd,
-      phone_num: userData.phone_num,
-      role: userData.role
-    };
-    
-    // If teacher, also create teacher record (in real app, backend does this)
-    if (userData.role === 'TEACHER') {
-      // This would create a record in the Teacher table
-      console.log('Creating teacher record with secret_code:', userData.secret_code);
-    }
-    
-    const token = 'mock-jwt-token-' + Date.now();
-    localStorage.setItem('auth_token', token);
-    
+
+    const data = await response.json();
+
+    // Store tokens after successful registration
+    localStorage.setItem('auth_token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+
     return {
-      user: newUser,
-      token
+      user: data.user,
+      token: data.token
     };
   },
-//   // ==================== AUTH ====================
-//   login: async (email: string, password: string) => {
-//     const response = await fetch(`${API_BASE_URL}/auth/login`, {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({ email, password }),
-//     });
-    
-//     if (!response.ok) throw new Error('Login failed');
-    
-//     const data = await response.json();
-//     localStorage.setItem('auth_token', data.token);
-//     return data;
-//   },
 
-//   logout: () => {
-//     localStorage.removeItem('auth_token');
-//   },
+  // Logout - clear all stored data
+  logout: () => {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+  },
 
-  // ==================== STUDENTS ====================
+  // Get current user profile
+  getMe: async () => {
+    return fetchWithAuth('/accounts/me/');
+  },
+
+  // Refresh access token
+  refreshToken: async () => {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/accounts/token/refresh/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh: refreshToken }),
+    });
+
+    if (!response.ok) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('refresh_token');
+      throw new Error('Token refresh failed');
+    }
+
+    const data = await response.json();
+    localStorage.setItem('auth_token', data.access);
+    return data.access;
+  },
+
+  // Add student application (for authenticated parent)
+  addStudent: async (studentData: Record<string, unknown>) => {
+    return fetchWithAuth('/accounts/student/add/', {
+      method: 'POST',
+      body: JSON.stringify(studentData),
+    });
+  },
+
+  // ==================== OTP AUTHENTICATION ====================
+  // Send OTP to phone number
+  sendOtp: async (phone_number: string, purpose: 'LOGIN' | 'SIGNUP') => {
+    const response = await fetch(`${API_BASE_URL}/accounts/otp/send/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number, purpose }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'فشل إرسال رمز التحقق');
+    }
+
+    return response.json();
+  },
+
+  // Verify OTP and login
+  verifyOtpLogin: async (phone_number: string, otp_code: string) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/otp/verify-login/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number, otp_code }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'رمز التحقق غير صحيح أو منتهي الصلاحية');
+    }
+
+    const data = await response.json();
+
+    // Store tokens
+    localStorage.setItem('auth_token', data.tokens?.access || data.access);
+    localStorage.setItem('refresh_token', data.tokens?.refresh || data.refresh);
+    localStorage.setItem('user', JSON.stringify(data.user));
+
+    return {
+      user: data.user,
+      token: data.tokens?.access || data.access,
+      refresh: data.tokens?.refresh || data.refresh
+    };
+  },
+
+  // Verify OTP and complete signup
+  verifyOtpSignup: async (
+    phone_number: string,
+    otp_code: string,
+    first_name: string,
+    last_name: string,
+    password: string
+  ) => {
+    const response = await fetch(`${API_BASE_URL}/accounts/otp/verify-signup/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone_number, otp_code, first_name, last_name, password }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'فشل التحقق من رمز التأكيد');
+    }
+
+    const data = await response.json();
+
+    // Store tokens
+    localStorage.setItem('auth_token', data.tokens?.access || data.access);
+    localStorage.setItem('refresh_token', data.tokens?.refresh || data.refresh);
+    localStorage.setItem('user', JSON.stringify(data.user));
+
+    return {
+      user: data.user,
+      token: data.tokens?.access || data.access,
+      refresh: data.tokens?.refresh || data.refresh
+    };
+  },
+
+  //   // ==================== AUTH ====================
+  //   login: async (email: string, password: string) => {
+  //     const response = await fetch(`${API_BASE_URL}/auth/login`, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'application/json' },
+  //       body: JSON.stringify({ email, password }),
+  //     });
+
+  //     if (!response.ok) throw new Error('Login failed');
+
+  //     const data = await response.json();
+  //     localStorage.setItem('auth_token', data.token);
+  //     return data;
+  //   },
+
+  //   logout: () => {
+  //     localStorage.removeItem('auth_token');
+  //   },
+
+  // ==================== STUDENTS (Parent View) ====================
+  // Get all students for the authenticated parent
+  getMyStudents: async () => {
+    return fetchWithAuth('/academics/students/');
+  },
+
+  // Get students for a specific user (by user ID)
+  getUserStudents: async (userId: string | number) => {
+    return fetchWithAuth(`/academics/users/${userId}/students/`);
+  },
+
+  // Get specific student profile by ID
+  getStudentProfile: async (studentId: string | number) => {
+    return fetchWithAuth(`/academics/students/${studentId}/profile/`);
+  },
+
+  // Legacy methods (keeping for compatibility)
   getStudents: async () => {
-    return fetchWithAuth('/students');
+    return fetchWithAuth('/academics/students/');
   },
 
   getStudentById: async (studentId: string) => {
-    return fetchWithAuth(`/students/${studentId}`);
+    return fetchWithAuth(`/academics/students/${studentId}/profile/`);
   },
 
   createStudent: async (studentData: Record<string, unknown>) => {
-    return fetchWithAuth('/students', {
+    return fetchWithAuth('/accounts/student/add/', {
       method: 'POST',
       body: JSON.stringify(studentData),
     });
   },
 
   updateStudent: async (studentId: string, studentData: Record<string, unknown>) => {
-    return fetchWithAuth(`/students/${studentId}`, {
+    return fetchWithAuth(`/academics/students/${studentId}/`, {
       method: 'PUT',
       body: JSON.stringify(studentData),
     });
@@ -166,20 +320,30 @@ export const api: any = {
   // ==================== COURSES ====================
   getCourses: async (seasonId?: string) => {
     const query = seasonId ? `?season_id=${seasonId}` : '';
-    return fetchWithAuth(`/courses${query}`);
+    return fetchWithAuth(`/admin/courses/${query}`);
   },
 
   getCourseById: async (courseId: string) => {
-    return fetchWithAuth(`/courses/${courseId}`);
+    return fetchWithAuth(`/admin/courses/${courseId}/`);
+  },
+
+  getCourseStudents: async (courseId: string | number) => {
+    return fetchWithAuth(`/academics/courses/${courseId}/students/`);
+  },
+
+  getCourseSessions: async (courseId: string | number) => {
+    return fetchWithAuth(`/academics/courses/${courseId}/sessions/`);
   },
 
   // ==================== SEASONS ====================
   getSeasons: async () => {
-    return fetchWithAuth('/seasons');
+    return fetchWithAuth('/admin/seasons/');
   },
 
   getCurrentSeason: async () => {
-    return fetchWithAuth('/seasons/current');
+    // Get all seasons and find the active one
+    const seasons = await fetchWithAuth('/admin/seasons/');
+    return seasons?.find?.((s: any) => s.is_active) || seasons?.[0] || null;
   },
 
   // ==================== ENROLLMENTS ====================
@@ -199,8 +363,13 @@ export const api: any = {
   },
 
   // ==================== SESSIONS ====================
-  getCourseSessions: async (courseId: string) => {
-    return fetchWithAuth(`/sessions/course/${courseId}`);
+  // getCourseSessions moved to COURSES section above with correct URL
+  getSessionDetails: async (sessionId: string | number) => {
+    return fetchWithAuth(`/academics/sessions/${sessionId}/`);
+  },
+
+  getStudentSessionDetails: async (sessionId: string | number, studentId: string | number) => {
+    return fetchWithAuth(`/academics/sessions/${sessionId}/students/${studentId}/`);
   },
 
   // ==================== ATTENDANCE ====================
@@ -329,7 +498,7 @@ export const api: any = {
       body: JSON.stringify(data),
     });
   },
- 
+
   updateKhotba: async (id: string, data: Record<string, unknown>) => {
     return fetchWithAuth(`/public/khotba/${id}/`, {
       method: 'PUT',
@@ -349,8 +518,7 @@ export const api: any = {
   },
 };
 
-import { 
-  mockUsers,
+import {
   mockStudents,
   calculateStudentProgress,
   getMockDashboardSessions,
@@ -383,7 +551,7 @@ Object.assign(api, {
       const e = new Date(endStr);
       return d >= s && d <= e;
     };
-    const current = mockSeasons.find(s => within(today.toISOString().slice(0,10), s.season_start, s.season_end));
+    const current = mockSeasons.find(s => within(today.toISOString().slice(0, 10), s.season_start, s.season_end));
     return current || mockSeasons[mockSeasons.length - 1];
   },
   getRegistrationStatus: async () => {
@@ -391,11 +559,38 @@ Object.assign(api, {
     const mode = season.season_type === 'REGULAR' ? 'ANNUAL' : 'SUMMER';
     return { open: true, mode, season };
   },
-  submitRegistration: async (data: { first_name: string; last_name: string; phone: string; dob: string; address: string; }) => {
-    await new Promise(resolve => setTimeout(resolve, 600));
-    const id = 'APP' + Date.now();
-    const season = await api.getCurrentSeason();
-    const application = { application_id: id, status: 'PENDING', season_type: season.season_type, ...data };
+  submitRegistration: async (data: {
+    first_name: string;
+    last_name: string;
+    birth_date: string;
+    birth_place: string;
+    gender: 'M' | 'F';
+    school_year: string;
+    school_name?: string;
+    personal_phone?: string;
+    has_disease: boolean;
+    disease_name?: string;
+    quran_level?: number;
+  }) => {
+    const token = localStorage.getItem('auth_token');
+
+    const response = await fetch(`${API_BASE_URL}/accounts/student/add/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.error || 'فشل في إرسال الطلب');
+    }
+
+    const result = await response.json();
+    // Backend returns { message, student: {...} } - extract the student object
+    const application = result.student || result;
     localStorage.setItem('registration_application', JSON.stringify(application));
     return application;
   },
