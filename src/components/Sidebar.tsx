@@ -5,6 +5,7 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
+  History,
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,10 +14,12 @@ interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
   userName?: string;
+  onMenuItemClick?: (label: string) => void;
 }
 
 const menuItems = [
   { icon: BookOpen, label: "حلقات قرآنية" },
+  { icon: History, label: "السجل" },
   { icon: Bell, label: "إشعارات" },
   { icon: Settings, label: "إعدادات" },
 ];
@@ -25,6 +28,7 @@ export function Sidebar({
   collapsed,
   onToggle,
   userName = "أم محمد",
+  onMenuItemClick,
 }: SidebarProps) {
   const [activeItem, setActiveItem] = useState("حلقات قرآنية");
   const navigate = useNavigate();
@@ -35,11 +39,17 @@ export function Sidebar({
     navigate("/login");
   };
 
+  const handleMenuClick = (label: string) => {
+    setActiveItem(label);
+    if (onMenuItemClick) {
+      onMenuItemClick(label);
+    }
+  };
+
   return (
     <aside
-      className={`bg-[#024C3F] text-white transition-all duration-300 flex flex-col ${
-        collapsed ? "w-20" : "w-64"
-      }`}
+      className={`bg-[#024C3F] text-white transition-all duration-300 flex flex-col ${collapsed ? "w-20" : "w-64"
+        }`}
     >
       {/* School Name Header */}
       <div className="p-6 border-b border-white/10">
@@ -101,12 +111,11 @@ export function Sidebar({
             return (
               <li key={item.label}>
                 <button
-                  onClick={() => setActiveItem(item.label)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive
-                      ? "bg-[#024C3F]/60 text-white"
-                      : "text-white/70 hover:bg-white/10 hover:text-white"
-                  }`}
+                  onClick={() => handleMenuClick(item.label)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive
+                    ? "bg-[#024C3F]/60 text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                    }`}
                 >
                   <Icon className="w-5 h-5 shrink-0" />
                   {!collapsed && <span>{item.label}</span>}

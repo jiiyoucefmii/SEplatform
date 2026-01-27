@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sidebar } from "../components/Sidebar";
+import HistoryPage from "./HistoryPage";
+import { StudentProgress } from "../components/student-profile/StudentProgress";
 import {
   CheckCircle,
   XCircle,
@@ -378,6 +380,7 @@ export default function TeacherDashboard() {
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         userName={userName}
+        onMenuItemClick={handleMenuItemClick}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -883,6 +886,19 @@ export default function TeacherDashboard() {
                   )}
                 </div>
               </div>
+            )}
+
+            {/* HISTORY VIEW */}
+            {view === "history" && (
+              <HistoryPage onBack={handleBackToDashboard} />
+            )}
+
+            {/* STUDENT PROFILE VIEW */}
+            {view === "student-profile" && selectedStudentId && (
+              <StudentProgress
+                studentId={selectedStudentId}
+                onBack={handleBackToDashboard}
+              />
             )}
           </div>
         </main>
